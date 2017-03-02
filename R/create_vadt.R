@@ -30,11 +30,7 @@
 #' diet = TRUE
 #' obj <- create_vadt(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet)
 #' }
-# setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
-# outdir = "OutM52BioV183FMV88/"; fgfile = "GroupsIcelandFMA.csv"
-# ncout = "Out"; startyear = 1948; toutinc = 365
-# biolprm = "BioV183.prm"; diet = TRUE
-# diet <- TRUE
+
 
 create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet = TRUE){
   # contants
