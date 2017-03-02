@@ -94,7 +94,7 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   fish_fishery_l$Time <- startyear + fish_fishery_l$Time/365
   
   
-  cat("### ------------ Setting up disaggregated spatial fisheries plots                  ------------ ###\n")
+  cat("### ------------ Setting up spatial fisheries plots                      ------------ ###\n")
   fished_names <- names(fishtot_out$var)
   fished_catch <- grep("_Catch", fished_names, value = TRUE)
   fished_catch <- fished_catch[-grep("Avg_Catch_Sze", fished_catch, value = FALSE)]
@@ -300,6 +300,8 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   }
   
   cat("### ------------ Setting up disaggregated spatial plots                  ------------ ###\n")
+  cat("### ------------ This part takes a while                                 ------------ ###\n")
+  cat("### ------------ Go grab a kleina                                        ------------ ###\n")
   nums <- grep("Nums", var_names, value = TRUE)
   N <- grep("_N", var_names, value = TRUE)
   N <- N[-grep("_Nums", N, value = FALSE)]
@@ -538,7 +540,7 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   
   
   cat("### ------------ Setting up data for production output                   ------------ ###\n")
-  cat("### ------------ This part takes a while.                                ------------ ###\n")
+
   # Create the production output
   prod_names <- names(prod_out$var)
   t <- prod_out$dim$t$vals
