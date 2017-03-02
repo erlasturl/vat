@@ -9,12 +9,12 @@
 #'@param startyear Year that the model starts
 #'@param toutinc Periodicity of writing output (in days)
 #'@param diet Include diagnostic diet plots? default is TRUE
-#'@import dtplyr 
+#'@import dplyr 
+#'@import data.table
 #'@importFrom ncdf4 nc_open
 #'@importFrom ncdf4 ncvar_get
-#'@importFrom plyr ldply
-#'@importFrom plyr adply
-#'@importFrom tidyr gather
+#'@import plyr 
+#'@import tidyr
 #'@importFrom stringr str_split_fixed
 #'@importFrom stringr str_trim
 #'@export
