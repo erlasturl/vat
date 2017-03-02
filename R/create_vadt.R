@@ -10,7 +10,7 @@
 #'@param toutinc Periodicity of writing output (in days)
 #'@param diet Include diagnostic diet plots? default is TRUE
 #'@import dplyr
-#'@importFrom data.table data.table 
+#'@importFrom data.table 
 #'@importFrom ncdf4 nc_open
 #'@importFrom ncdf4 ncvar_get
 #'@importFrom plyr ldply
