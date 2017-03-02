@@ -9,12 +9,13 @@
 #'@param startyear Year that the model starts
 #'@param toutinc Periodicity of writing output (in days)
 #'@param diet Include diagnostic diet plots? default is TRUE
-#'@import dplyr 
-#'@importFrom data.table data.table
+#'@import dplyr
+#'@importFrom data.table data.table 
 #'@importFrom ncdf4 nc_open
 #'@importFrom ncdf4 ncvar_get
-#'@import plyr 
-#'@import tidyr
+#'@importFrom plyr ldply
+#'@importFrom plyr adply
+#'@importFrom tidyr gather
 #'@importFrom stringr str_split_fixed
 #'@importFrom stringr str_trim
 #'@export
@@ -30,7 +31,11 @@
 #' diet = TRUE
 #' obj <- create_vadt(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet)
 #' }
-
+setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
+outdir = "OutM52BioV183FMV88/"; fgfile = "GroupsIcelandFMA.csv"
+ncout = "Out"; startyear = 1948; toutinc = 365
+biolprm = "BioV183.prm"; diet = TRUE
+diet <- TRUE
 
 create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet = TRUE){
   # contants
@@ -134,7 +139,7 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
         gather("Prey", "eaten", 5:ncol(diet))
       colnames(diet_l) <- c("Predator","Time","Cohort", "Stock", "Prey", "eaten")
     }
-    diet_l[diet_l$Time == 0,] <- NA # delete lines at time 0 because 0 diet
+    diet_l <- diet_l[diet_l$Time > 0,]  # delete lines at time 0 because 0 diet
     diet_l$Time <- startyear + diet_l$Time/365
     tot_pred <- diet_l %>%
       group_by(Predator,Prey) %>%
@@ -338,8 +343,8 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
 
   
   # Density N mg per m3 and invertabrates per m2
-  dens_N <- list()
-  dens_inv <- list()
+  dens_m2 <- list()
+  dens_m3 <- list()
   j <- 1
   volume <- ncvar_get(nc = nc_out, varid = 'volume')
   vol <- apply(volume,c(2,3),sum)[,1]
@@ -347,21 +352,21 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
     tempN <- ncvar_get(nc = nc_out, varid = N[i])
     if(length(dim(tempN))==3){
       totBioBox <- tempN*volume
-      Temp_dens_N <- apply(totBioBox,c(2,3),sum)/(vol+1e-6)
-      Temp_dens_N[1,] <- 0 # set as 0 in box 0
-    dens_N[[i]] <- Temp_dens_N 
-      Temp_dens_inv <- apply(totBioBox,c(2,3),sum)/areaboxes$area
-      Temp_dens_inv[1,] <- 0 # set as 0 in box 0
-    dens_inv[[i]] <- Temp_dens_inv }else
+      Temp_dens_m3 <- apply(totBioBox,c(2,3),sum)/(vol+1e-6)
+      Temp_dens_m3[1,] <- 0 # set as 0 in box 0
+    dens_m3[[i]] <- Temp_dens_m3 
+      Temp_dens_m2 <- apply(totBioBox,c(2,3),sum)/areaboxes$area
+      Temp_dens_m2[1,] <- 0 # set as 0 in box 0
+    dens_m2[[i]] <- Temp_dens_m2 }else
     {
       totBioBox <- tempN*areaboxes$area
-      dens_N[[i]] <- totBioBox/(vol+1e-6)
-      dens_inv[[i]] <- tempN
+      dens_m3[[i]] <- totBioBox/(vol+1e-6)
+      dens_m2[[i]] <- tempN
       j<- j + 1
     }
   }
-  names(dens_N) <- N
-  names(dens_inv) <- N
+  names(dens_m3) <- N
+  names(dens_m2) <- N
   
 
   
@@ -599,7 +604,7 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   totalfished$.id <- factor(totalfished$.id, levels = unique(totalfished$.id))
   totalfished$Time <- as.numeric(as.character(totalfished$X1)) * toutinc / 365 + startyear - 2
   
-  output <- list(disagg = vars,invert_vars = invert_vars, invert_mnames = invert_mnames, trace_vars = trace_vars, trace_names = trace_names, var_names = tot_num, N_names = N, max_layers = max_layers, max_time = max_time, bioagg_names = bioagg_names, rs_names = rs_names, tot_pred = tot_pred, ssb_names = ssb_names, yoy_names = yoy_names, islands = islands, rel_bio = rel_bio, tot_bio = tot_bio, ssb = ssb, yoy = yoy, structN = structN, reserveN = reserveN, totalnums = totalnums, map_base = map_base, numboxes = numboxes, fun_group = fun_group, invert_names = invert_names, invert_l = invert_l, vert_l = vert_l, ab_params = ab_params, diet_l = diet_l, erla_plots = erla_plots, toutinc = toutinc, startyear = startyear, tot_bio_v = tot_bio_v, tot_bio_i = tot_bio_i, biomass_by_box = biomass_by_box, fgnames = fun_group[,4], fish_fishery_l = fish_fishery_l, fish_tsact_year = fish_tsact_year, fish_biomass_year = fish_biomass_year, fishedFish = fishedFish, dens = dens, fished = fished, dens_inv = dens_inv, dens_N = dens_N, yoy_nums = yoy_nums, totfished = totalfished, totcatch = totcatch_df_l)
+  output <- list(disagg = vars,invert_vars = invert_vars, invert_mnames = invert_mnames, trace_vars = trace_vars, trace_names = trace_names, var_names = tot_num, N_names = N, max_layers = max_layers, max_time = max_time, bioagg_names = bioagg_names, rs_names = rs_names, tot_pred = tot_pred, ssb_names = ssb_names, yoy_names = yoy_names, islands = islands, rel_bio = rel_bio, tot_bio = tot_bio, ssb = ssb, yoy = yoy, structN = structN, reserveN = reserveN, totalnums = totalnums, map_base = map_base, numboxes = numboxes, fun_group = fun_group, invert_names = invert_names, invert_l = invert_l, vert_l = vert_l, ab_params = ab_params, diet_l = diet_l, erla_plots = erla_plots, toutinc = toutinc, startyear = startyear, tot_bio_v = tot_bio_v, tot_bio_i = tot_bio_i, biomass_by_box = biomass_by_box, fgnames = fun_group[,4], fish_fishery_l = fish_fishery_l, fish_tsact_year = fish_tsact_year, fish_biomass_year = fish_biomass_year, fishedFish = fishedFish, dens = dens, fished = fished, dens_m2 = dens_m2, dens_m3 = dens_m3, yoy_nums = yoy_nums, totfished = totalfished, totcatch = totcatch_df_l)
   cat("### ------------ vat object created, you can now run the vat application ------------ ###\n") 
   return(output)
   class(output) <- "vadt"
