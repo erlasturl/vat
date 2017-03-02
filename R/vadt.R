@@ -72,7 +72,7 @@ vadt <- function(obj, anim = NULL){
                                                         plotOutput("within_box_plot", height = "1200px")))),
                                tabPanel("Interactive Plots",
                                         navlistPanel(widths = c(2, 10),
-                                                     tabPanel("Density Numbers per m2",
+                                                     tabPanel("Numbers per m2",
                                                               fluidRow(
                                                                 column(4,
                                                                        wellPanel(
@@ -88,24 +88,8 @@ vadt <- function(obj, anim = NULL){
                                                                                      value = 1,
                                                                                      round = TRUE))),
                                                                 column(8,
-                                                                       plotOutput("map", height = "450px")))),
-                                                     tabPanel("Biomass per m3",
-                                                              fluidRow(
-                                                                column(4,
-                                                                       wellPanel(
-                                                                         selectInput("invert_sm",
-                                                                                     label = "",
-                                                                                     selected = obj$N_names[1],
-                                                                                     choices = obj$N_names),
-                                                                         sliderInput("invert_time",
-                                                                                     label = "Choose a time to display",
-                                                                                     min = 1,
-                                                                                     step = 1,
-                                                                                     max = obj$max_time, 
-                                                                                     value = 1,
-                                                                                     round = TRUE))),
-                                                                column(8,
-                                                                       plotOutput("map_N", height = "450px")))),
+                                                                       plotOutput("map_Numb", height = "450px")))),
+                                                     
                                                      tabPanel("Biomass per m2",
                                                               fluidRow(
                                                                 column(4,
@@ -122,7 +106,24 @@ vadt <- function(obj, anim = NULL){
                                                                                      value = 1,
                                                                                      round = TRUE))),
                                                                 column(8,
-                                                                       plotOutput("trace_map", height = "450px")))))),
+                                                                       plotOutput("map_Bm2", height = "450px")))),
+                                                     tabPanel("Biomass per m3",
+                                                              fluidRow(
+                                                                column(4,
+                                                                       wellPanel(
+                                                                         selectInput("invert_sm",
+                                                                                     label = "",
+                                                                                     selected = obj$N_names[1],
+                                                                                     choices = obj$N_names),
+                                                                         sliderInput("invert_time",
+                                                                                     label = "Choose a time to display",
+                                                                                     min = 1,
+                                                                                     step = 1,
+                                                                                     max = obj$max_time, 
+                                                                                     value = 1,
+                                                                                     round = TRUE))),
+                                                                column(8,
+                                                                       plotOutput("map_Bm3", height = "450px")))))),
                                
                                
                                
@@ -177,9 +178,7 @@ vadt <- function(obj, anim = NULL){
                     
                     navbarMenu("Diet Data",
                                tabPanel("Diet by Predator",
-                                        navlistPanel(widths = c(2, 10),
-                                                     tabPanel(title = ifelse(any(names(obj$diet_l) == "Habitat"), "By Habitat Type", "By Age Class"),
-                                                              fluidRow(column(4),
+                                                  fluidRow(column(4),
                                                                        column(4,
                                                                               if(is.null(obj$tot_pred) == FALSE){
                                                                                 wellPanel(selectInput("diet_pred_unagg",
@@ -189,17 +188,8 @@ vadt <- function(obj, anim = NULL){
                                                               fluidRow(column(12,
                                                                               if(is.null(obj$tot_pred) == FALSE)
                                                                                 plotOutput("diet_pred_plot", height = "800px")))),
-                                                     tabPanel(title = ifelse(any(names(obj$diet_l) == "Habitat"), "Over Habitat Type", "Over Age Class"),
-                                                              fluidRow(column(4),
-                                                                       column(4,
-                                                                              if(is.null(obj$tot_pred) == FALSE){
-                                                                                wellPanel(selectInput("diet_pred_agg",
-                                                                                                      label = "Predator",
-                                                                                                      choices = obj$fgnames))}
-                                                                       ))))),   
+
                                tabPanel("Diet by Prey",
-                                        navlistPanel(widths = c(2, 10),
-                                                     tabPanel(title = ifelse(any(names(obj$diet_l) == "Habitat"), "By Habitat Type", "By Age Class"),
                                                               fluidRow(column(4),
                                                                        column(4,
                                                                               if(is.null(obj$tot_pred) == FALSE){
@@ -210,14 +200,7 @@ vadt <- function(obj, anim = NULL){
                                                               fluidRow(column(12,
                                                                               if(is.null(obj$tot_pred) == FALSE)
                                                                                 plotOutput("diet_prey_plot", height = "600px")))),
-                                                     tabPanel(title = ifelse(any(names(obj$diet_l) == "Habitat"),"Over Habitat Type", "Over Age Class"),
-                                                              fluidRow(column(4),
-                                                                       column(4,
-                                                                              if(is.null(obj$tot_pred) == FALSE){
-                                                                                wellPanel(selectInput("diet_prey_agg",
-                                                                                                      label = "Prey",
-                                                                                                      choices = obj$fgnames))}
-                                                                       ))))),
+                                                    
                                tabPanel("Diet by Predator and Prey",
                                         fluidRow(column(2),
                                                  column(4,
@@ -337,7 +320,7 @@ vadt <- function(obj, anim = NULL){
       #   datatable(obj$fun_group, rownames = FALSE)
       # })
       # 
-      output$map <- renderPlot({
+      output$map_Numb <- renderPlot({
         tmp <- obj$dens[[input$disagg_var]]
         tmp.min <- min(tmp)
         tmp.max <- max(tmp)
@@ -358,36 +341,15 @@ vadt <- function(obj, anim = NULL){
           scale_fill_gradient2(limits = c(tmp.min, tmp.max), midpoint = tmp.mid, low = muted("white"), mid = 'white', high = muted("blue")) +
           theme(legend.title=element_blank(), plot.background = element_blank()) + scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)
       })
-# Plot vi? biomass per m3
-      # output$map_N <- renderPlot({
-      #   tmp <- obj$dens_N[[input$invert_sm]]
-      #   tmp.min <- min(tmp)
-      #   tmp.max <- max(tmp)
-      #   tmp.mid <- min(tmp)
-      #   tmp <- obj$dens_N[[input$invert_sm]][,input$invert_time]
-      #   
-      #   # Plot islands with a different color
-      #   if(is.character(obj$islands)){
-      #     islands <- as.numeric(obj$islands)
-      #     tmp[islands + 1] <- NA
-      #   }
-      #   data_tmp <- data.frame(boxid = 0:(obj$numboxes - 1), tmp)
-      #   
-      #   unagg_map_data <- merge(obj$map_base, data_tmp)
-      #   ggplot(data = unagg_map_data, aes(x = x, y = y)) +
-      #     geom_polygon(aes(group = boxid, fill = tmp), colour = "black") +
-      #     theme_bw() + xlab("") + ylab("") +
-      #     scale_fill_gradient2(limits = c(tmp.min, tmp.max), midpoint = tmp.mid, low = muted("white"), mid = 'white', high = muted("blue")) +
-      #     theme(legend.title=element_blank(), plot.background = element_blank()) + scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)
-      # })
-     
-# Plot inv per m2
-      output$trace_map <- renderPlot({
-        tmp <- obj$dens_inv[[input$trace_sm]]
+      
+      
+      # Plot Biomass per m2
+      output$map_Bm2 <- renderPlot({
+        tmp <- obj$dens_m2[[input$trace_sm]]
         tmp.min <- min(tmp)
         tmp.max <- max(tmp)
         tmp.mid <- min(tmp)
-        tmp <- obj$dens_inv[[input$trace_sm]][,input$trace_time]
+        tmp <- obj$dens_m2[[input$trace_sm]][,input$trace_time]
         
         # Plot islands with a different color
         if(is.character(obj$islands)){
@@ -404,51 +366,40 @@ vadt <- function(obj, anim = NULL){
           theme(legend.title=element_blank(), plot.background = element_blank()) + scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)
       })  
       
+      
+       # Plot biomass per m3
+       output$map_Bm3 <- renderPlot({
+         tmp <- obj$dens_m3[[input$invert_sm]]
+         tmp.min <- min(tmp)
+         tmp.max <- max(tmp)
+         tmp.mid <- min(tmp)
+         tmp <- obj$dens_m3[[input$invert_sm]][,input$invert_time]
+         
+         # Plot islands with a different color
+         if(is.character(obj$islands)){
+           islands <- as.numeric(obj$islands)
+           tmp[islands + 1] <- NA
+         }
+         data_tmp <- data.frame(boxid = 0:(obj$numboxes - 1), tmp)
+         
+         unagg_map_data <- merge(obj$map_base, data_tmp)
+         ggplot(data = unagg_map_data, aes(x = x, y = y)) +
+           geom_polygon(aes(group = boxid, fill = tmp), colour = "black") +
+           theme_bw() + xlab("") + ylab("") +
+           scale_fill_gradient2(limits = c(tmp.min, tmp.max), midpoint = tmp.mid, low = muted("white"), mid = 'white', high = muted("blue")) +
+           theme(legend.title=element_blank(), plot.background = element_blank()) + scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)
+       })
+     
 
-# # Plot of tracers      
-#       output$ui_trace <- renderUI({
-#         tmp <- obj$trace_vars[[input$trace_sm]]
-#         if(length(dim(tmp)) == 3)
-#           sliderInput("trace_layer", 
-#                       label = "Choose a layer to display",
-#                       min = 1,
-#                       step = 1,
-#                       max = obj$max_layers, 
-#                       value = 1,
-#                       round = TRUE)
-#       })
-#       
-#       # Tracer plot
-#       output$trace_map <- renderPlot({
-#         tmp <- obj$trace_vars[[input$trace_sm]]
-#         tmp.min <- min(tmp)
-#         tmp.max <- max(tmp)
-#         tmp.mid <- median(tmp)
-#         if(length(dim(tmp)) == 3){
-#           tmp <- obj$trace_vars[[input$trace_sm]][input$trace_layer,,input$trace_time]
-#         } else tmp <- obj$trace_vars[[input$trace_sm]][,input$trace_time]
-#         
-#         # Plot islands with a different color
-#         if(is.character(obj$islands)){
-#           islands <- as.numeric(obj$islands)
-#           tmp[islands + 1] <- NA
-#         }
-#         data_tmp <- data.frame(boxid = 0:(obj$numboxes - 1), tmp)
-#         
-#         unagg_map_data <- merge(obj$map_base, data_tmp)
-#         ggplot(data = unagg_map_data, aes(x = x, y = y)) +
-#           geom_polygon(aes(group = boxid, fill = tmp), colour = "black") +
-#           theme_bw() + xlab("") + ylab("") +
-#           scale_fill_gradient2(limits = c(tmp.min, tmp.max), low = muted("red"), midpoint = tmp.mid, high = muted("blue")) +
-#           theme(legend.title=element_blank()) + scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL) 
-#       })
-#       
-#       output$within_box_plot <- renderPlot({
-#         tmp <- subset(obj$biomass_by_box, Box == input$biomass_box_sel)
-#         qplot(y = round(value), x = Time, geom = "line", data = tmp) + facet_wrap(~ Name, scales = "free", ncol = 5) + theme_bw() + xlab("Year") +  
-#           scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2))))) + ylab("")
-#       })
-#       
+      
+
+  
+      output$within_box_plot <- renderPlot({
+        tmp <- subset(obj$biomass_by_box, Box == input$biomass_box_sel)
+        qplot(y = round(value), x = Time, geom = "line", data = tmp) + facet_wrap(~ Name, scales = "free", ncol = 5) + theme_bw() + xlab("Year") +
+          scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2))))) + ylab("")
+      })
+
       ## Erla's Vertebrate Number Plots
       output$vert_erla_plot <- renderPlot({
         tmp <- obj$erla_plots[[input$erla_plot_select]]
