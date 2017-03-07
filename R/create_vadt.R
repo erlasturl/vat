@@ -36,6 +36,7 @@
 #' obj <- create_vadt(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing, fishfile, toutfinc)
 #' }
 
+
 create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing = FALSE, fishfile = NULL, toutfinc = 365){
   # contants
   nsecs <- 86400
@@ -420,6 +421,7 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   # ------------------------------------- #
 
   cat("### ------------ Setting up aggregated diagnostic plots                  ------------ ###\n")
+  #tmp <- within(tmp, Box <- factor(Box, levels = paste("Box", 0:(nrbox-1))))
   
   # Aggregate arrays
   
@@ -429,13 +431,21 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   
   structN$.id <- factor(structN$.id, levels = unique(structN$.id))
   structN$Time <- as.numeric(as.character(structN$X1)) * toutinc / 365 + startyear - 1
+  structN$Age <- as.numeric(gsub("[^0-9]", "", structN$.id, ""))
+  structN$Ageclass <- paste('Ageclass', structN$Age)
+  structN <- within(structN, Ageclass <- factor(Ageclass, levels = paste('Ageclass', 1:max(Age))))
   
   reserveN$.id <- factor(reserveN$.id, levels = unique(reserveN$.id))
   reserveN$Time <- as.numeric(as.character(reserveN$X1)) * toutinc / 365 + startyear - 1 
+  reserveN$Age <- as.numeric(gsub("[^0-9]", "", reserveN$.id, ""))
+  reserveN$Ageclass <- paste('Ageclass', reserveN$Age)
+  reserveN <- within(reserveN, Ageclass <- factor(Ageclass, levels = paste('Ageclass', 1:max(Age))))
   
   totalnums$.id <- factor(totalnums$.id, levels = unique(totalnums$.id))
   totalnums$Time <- as.numeric(as.character(totalnums$X1)) * toutinc / 365 + startyear - 1
-  
+  totalnums$Age <- as.numeric(gsub("[^0-9]", "", totalnums$.id, ""))
+  totalnums$Ageclass <- paste('Ageclass', totalnums$Age)
+  totalnums <- within(totalnums, Ageclass <- factor(Ageclass, levels = paste('Ageclass', 1:max(Age))))
   
   # ------------------------------------- #
   # -            Diet Plots             - #
