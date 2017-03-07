@@ -3,12 +3,14 @@
 #' This function creates a visualizing Atlantis diagnostic tool object which should be fed to the \code{vadt} function. This object can be quite large and this function may take a little while depending on how long you have run Atlantis for and the complexity of your model.
 #' 
 #'@param outdir Path to Atlantis output directory
-#'@param fgfile Functional group file
+#'@param funfile Functional group file
 #'@param biolprm Biology parameter file 
 #'@param ncout Name of output ncdf4 file excluding nc suffix (i.e. name given after -o flag)
 #'@param startyear Year that the model starts
-#'@param toutinc Periodicity of writing output (in days)
-#'@param diet Include diagnostic diet plots? default is TRUE
+#'@param toutinc Periodicity of writing biology output (in days)
+#'@param fishing Include fisheries plots? default is FALSE
+#'@param fishfile Fisheries group file if fishing = TRUE. Default is NULL
+#'@param toutfinc = Periodicity of writing fisheries output (in days)
 #'@import dplyr
 #'@importFrom data.table data.table 
 #'@importFrom ncdf4 nc_open
@@ -23,21 +25,18 @@
 #'@examples
 #'\dontrun{
 #' outdir = "out/"
-#' fgfile = "fg.csv"
+#' funfile = "fg.csv"
 #' biolprm = "bio.prm"
 #' ncout = "atlantis_output"
 #' startyear = 1948
-#' toutinc = 30
-#' diet = TRUE
-#' obj <- create_vadt(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet)
+#' toutinc = 365
+#' fishing = TRUE
+#' fishfile = fishGroup.csv
+#' toutfinc = 365
+#' obj <- create_vadt(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing, fishfile, toutfinc)
 #' }
-setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
-outdir = "OutM52BioV183FMV88/"; fgfile = "GroupsIcelandFMA.csv"
-ncout = "Out"; startyear = 1948; toutinc = 365
-biolprm = "BioV183.prm"; diet = TRUE
-diet <- TRUE
 
-create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet = TRUE){
+create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing = FALSE, fishfile = NULL, toutfinc = 365){
   # contants
   nsecs <- 86400
   ndays <- 365
@@ -62,105 +61,40 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   cat("### ------------ Reading in data                                         ------------ ###\n")
   nc_out <- nc_open(paste(outdir, ncout, ".nc", sep = ""))
   prod_out <- nc_open(paste(outdir, ncout, "PROD.nc", sep = ""))
-  fish_out <- nc_open(paste(outdir, ncout, "CATCH.nc", sep = ""))
-  fishtot_out <- nc_open(paste(outdir, ncout, "TOTCATCH.nc", sep = ""))
   bio_agg <- read.table(paste(outdir, ncout, "BoxBiomass.txt", sep = ""), header = T)
   ssb <- read.table(paste(outdir, ncout, "SSB.txt", sep = ""), header = TRUE)
   yoy <- read.table(paste(outdir, ncout, "YOY.txt", sep = ""), header = TRUE)
-  #yoy[ssb$Time< 356 & ssb[1:ncol(ssb)] == 0] <- NA # Set rec as NA before SSB is calculated
-  #ssb[ssb$Time< 356 & ssb[1:ncol(ssb)] == 0] <- NA # Set SSB as NA before SSB is calculated
   bgm <- readLines(paste(outdir, grep(".bgm",dir(outdir), value = T), sep = ""))
-  fish_total <- read.table(paste(outdir, ncout, "Catch.txt", sep = ""), header = T)
-  fish_fishery <- read.table(paste(outdir, ncout, "CatchPerFishery.txt", sep = ""), header = T)
   biomass <- read.table(paste(outdir, ncout, "BiomIndx.txt", sep = ""), header = T)
-  rel_bio <- biomass[,c(1, grep("Rel",colnames(biomass)))]
-  tot_bio <- biomass[,c(1:(grep("Rel",colnames(biomass))[1]-1))]
-  fun_group <- read.csv(fgfile, header = T, stringsAsFactors = FALSE)#[, c(1,3, 4,5,6, 9,16, 12)]
+  diet <- read.table(paste(outdir, ncout, "DietCheck.txt", sep = ""), header = TRUE, stringsAsFactors = TRUE)
+  biolprm <- readLines(biolprm)
+  fun_group <- read.csv(funfile, header = T, stringsAsFactors = FALSE)
   fun_group <- subset(fun_group, fun_group$IsTurnedOn == 1)
   
-  # Set up fisheries files
-  ts_act <- grep("TsAct", colnames(fish_total))
-  fish_biomass_year <- fish_total[,1:(ts_act[1] - 1)]
-  fish_tsact_year <- fish_total[, c(1, ts_act)]
-  fish_biomass_year$Time <- startyear + fish_biomass_year$Time/365
-  fish_tsact_year$Time <- startyear + fish_tsact_year$Time/365
-  fishedFish <- colnames(fish_biomass_year)[-1]
-  fishedFish <- fun_group[match(fishedFish, fun_group$Code), "Name"]
-  colnames(fish_biomass_year) <- c("Time", fishedFish)
-  colnames(fish_tsact_year) <- c("Time", fishedFish)
-  colnames(fish_fishery) <- c("Time", "Fishery", fishedFish)
-  fish_fishery_l <- fish_fishery %>%
-    gather("Species", "biomass", 3:ncol(fish_fishery))
-  fish_fishery_l$Time <- startyear + fish_fishery_l$Time/365
+  ## Drop those functional groups that are not turned on
+  fun_group <- fun_group[fun_group$IsTurnedOn == 1,]# c(1,3:8)]
   
+  if(sum(names(fun_group) == "InvertType") > 0)
+    names(fun_group)[names(fun_group) == "InvertType"] <- "GroupType"
   
-  cat("### ------------ Setting up spatial fisheries plots                      ------------ ###\n")
-  fished_names <- names(fishtot_out$var)
-  fished_catch <- grep("_Catch", fished_names, value = TRUE)
-  fished_catch <- fished_catch[-grep("Avg_Catch_Sze", fished_catch, value = FALSE)]
-  fished_group <- str_split_fixed(fished_catch, '_Catch', n = 2)[,1]
-  fished_group <- str_split_fixed(fished_group, 'Tot_', n = 2)[,2]
-  fished_group_names <- fun_group$Name[match(fished_group, fun_group$Code)] 
-  # extract tracers from the ncdf4 object (vertebrates)
-  totcatch <- list()
-  for (i in 1:length(fished_group)){
-    totcatch[[i]] <- ncvar_get(nc = fishtot_out, varid = paste0('Tot_', fished_group[i],'_Catch'))
-    }
-  names(totcatch) <- fished_group_names
-  totcatch_df <- ldply (totcatch, data.frame)
-  totcatch_df$Box <- paste('Box',rep(0:(nrow(totcatch[[1]])-1),length(fished_group_names)))
-  totcatch_df_l <- gather(totcatch_df, key = 'Time', value = 'Catch', 2:(ncol(totcatch_df)-1))
-  totcatch_df_l$Time <- as.numeric(gsub("[^0-9]", "", totcatch_df_l$Time, ""))
-  totcatch_df_l <- totcatch_df_l[totcatch_df_l$Time > 1,]
-  totcatch_df_l$Time <- startyear + totcatch_df_l$Time - 2
+  # Subset invertebrates and vertebrates
+  rs_names <- str_trim(fun_group[fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD"), "Name"]) # trim white space
+  rs_codes <- str_trim(fun_group[fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD"), "Code"])
+  invert_names <- fun_group[!(fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD")),]
   
-  #totalnums_fished <- ldply(fished, sum_agg)
+  # Get some variables
+  bioagg_names <- colnames(bio_agg)[c(-1,-2)]
+  max_tracer <- nc_out$nvars
+  max_layers <- length(nc_out$dim$z$vals)
+  max_time <- length(nc_out$dim$t$vals)
+  var_names <- names(nc_out$var)
+ 
   
-  ## Reads in and prepares the diet data if it's available
-  if(diet){
-    cat("### ------------ Setting up diet matrix plot                             ------------ ###\n")    
-    diet <- read.table(paste(outdir, ncout, "DietCheck.txt", sep = ""), header = TRUE, stringsAsFactors = TRUE)
-#     if(any(names(diet) == "Predator")) {
-#       colnames(diet) <- c("Time", "Code", "Habitat", fun_group[,4])
-#     } else {
-      colnames(diet) <- c("Time", "Code", "Cohort", "Stock", fun_group[,4])
-#    }
-    diet <- merge(diet, fun_group[,c(1,2,4)])
-    diet <- arrange(diet, Index)
-    diet$Code <- diet$Name
-    diet$Name <- NULL; diet$Index <- NULL
-    
-    if(any(names(diet) == "Habitat")){
-      diet_l <- diet %>%
-        gather("Prey", "eaten", 4:ncol(diet))
-      colnames(diet_l) <- c("Predator","Time","Habitat", "Prey", "eaten")
-    } else {
-      diet_l <- diet %>%
-        gather("Prey", "eaten", 5:ncol(diet))
-      colnames(diet_l) <- c("Predator","Time","Cohort", "Stock", "Prey", "eaten")
-    }
-    diet_l <- diet_l[diet_l$Time > 0,]  # delete lines at time 0 because 0 diet
-    diet_l$Time <- startyear + diet_l$Time/365
-    tot_pred <- diet_l %>%
-      group_by(Predator,Prey) %>%
-      summarize(Eaten = mean(eaten))
-    diet_l <- data.table(diet_l)
-    tot_pred <- as.data.frame(tot_pred)
-  } else {
-    diet_l <- NULL
-    tot_pred <- NULL
-  }
-  
-  # Calculate by biomass by box - this is for the within-box plot
-  biomass_by_box <- bio_agg %>%
-    gather("Code", "value", -c(Time,Box))
-  biomass_by_box <- merge(biomass_by_box, fun_group[,c(1, 2, 4)])
-  biomass_by_box <- arrange(biomass_by_box, Index)
-  biomass_by_box$Name <- factor(biomass_by_box$Name, levels = unique(biomass_by_box$Name))
-  biomass_by_box$Time <- startyear + biomass_by_box$Time/365
+  # ------------------------------------- #
+  # -     Length Weight Parameters      - #
+  # ------------------------------------- #
   
   # Extract a and b parameters from biology parameter
-  biolprm <- readLines(biolprm)
   biol_a <- grep("li_a", biolprm, value = TRUE)
   biol_b <- grep("li_b", biolprm, value = TRUE)
   a_split <- unlist(str_split_fixed(biol_a, pattern = ' ', n = 2))
@@ -177,86 +111,13 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   ab_params <- data.frame(a_name = a_group, a = as.numeric(as.character(a_param)),
                           b_name = b_group, b = as.numeric(as.character(b_param)))
   
-  # todo: yoy as number of individuals
-  kwrr <- grep("KWRR", biolprm, value = T)
-  kwrr_split <- unlist(str_split_fixed(kwrr, pattern = ' ', n = 2))
-  kwrr_split <- apply(kwrr_split,2, str_trim, side = "both")
-  kwrr_group <- str_split_fixed(kwrr_split[,1], pattern = '_', n = 2)[,2]
-  kwrr_param <- str_split_fixed(kwrr_split[,2], pattern = ' ', n = 2)[,1]
-  
-  kwsr <- grep("KWSR", biolprm, value = T)
-  kwsr_split <- unlist(str_split_fixed(kwsr, pattern = ' ', n = 2))
-  kwsr_split <- apply(kwsr_split,2, str_trim, side = "both")
-  kwsr_group <- str_split_fixed(kwsr_split[,1], pattern = '_', n = 2)[,2]
-  kwsr_param <- str_split_fixed(kwsr_split[,2], pattern = ' ', n = 2)[,1]
-  
-  kwrr <- data.frame(group = kwrr_group, 'kwrr' = as.numeric(as.character(kwrr_param)))
-  kwsr <- data.frame(group = kwsr_group, 'kwsr' = as.numeric(as.character(kwsr_param)))
-  kwrr_kwsr_params <- merge(kwrr, kwsr)
-  kwrr_kwsr_params$weight <- kwrr_kwsr_params$kwrr + kwrr_kwsr_params$kwsr
-  kwrr_kwsr_params$weightTons <- kwrr_kwsr_params$weight*20*xCN/1e9
-  
-  yoy_nums <- matrix(rep(NA,dim(yoy)[1]*dim(yoy)[2]), ncol = dim(yoy)[2])
-  for(i in 2:ncol(yoy)){
-     findColumn <- paste(kwrr_kwsr_params$group,'.0',sep='') == names(yoy)[i]
-     yoy_nums[, i] <- yoy[,i] / kwrr_kwsr_params$weightTons[findColumn]
-  }
-  yoy_nums[,1] <- yoy$Time
-  yoy_nums <- as.data.frame(yoy_nums)
   
   
-  ## Drop those functional groups that are not turned on
-  fun_group <- fun_group[fun_group$IsTurnedOn == 1,]# c(1,3:8)]
+  # ------------------------------------- #
+  # -           spatial Plots           - #
+  # ------------------------------------- #
   
-  if(sum(names(fun_group) == "InvertType") > 0)
-    names(fun_group)[names(fun_group) == "InvertType"] <- "GroupType"
-  
-  # Subset invertebrates and vertebrates
-  rs_names <- str_trim(fun_group[fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD"), "Name"]) # trim white space
-  rs_codes <- str_trim(fun_group[fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD"), "Code"])
-  invert_names <- fun_group[!(fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD")),]
-  
-  # Rename columns
-  colnames(ssb) <- c("Time", rs_names)
-  colnames(yoy) <- c("Time", rs_names)
-  colnames(yoy_nums) <- c("Time", rs_names)
-  
-  # Biomass Long
-  tot_bio_l <- tot_bio %>%
-    gather("Code", "value", -Time)
-  
-  # Subset vertebrates
-  tot_bio_v <- filter(tot_bio_l, Code %in% rs_codes)
-  # Subset invertebrates
-  tot_bio_i <- filter(tot_bio_l, !(Code %in% rs_codes))
-  tot_bio_v <- merge(tot_bio_v, fun_group[c(1,2,4)], by = "Code")
-  tot_bio_v <- arrange(tot_bio_v, Index)
-  tot_bio_v$Name <- factor(tot_bio_v$Name, levels = unique(tot_bio_v$Name))
-  tot_bio_v$Time <- startyear + tot_bio_v$Time/365
-  tot_bio_i <- merge(tot_bio_i, fun_group[c(1,2,4)], by = "Code")
-  tot_bio_i <- arrange(tot_bio_i, Index)
-  tot_bio_i$Name <- factor(tot_bio_i$Name, levels = unique(tot_bio_i$Name))
-  tot_bio_i$Time <- startyear + tot_bio_i$Time/365
-  
-  colnames(rel_bio) <- c("Time", fun_group$Name, "DIN")
-  colnames(tot_bio) <- c("Time", fun_group$Name, "DIN")
-  rel_bio$Time <- startyear + rel_bio$Time/365
-  tot_bio$Time <- startyear + tot_bio$Time/365
-  ssb$Time <- startyear + ssb$Time/365
-  yoy$Time <- startyear + yoy$Time/365
-  yoy_nums$Time <- startyear + yoy_nums$Time/365
-  
-  cat("### ------------ Creating dynamic labels for vat                         ------------ ###\n")
-  bioagg_names <- colnames(bio_agg)[c(-1,-2)]
-  ssb_names <- colnames(ssb)[-1]
-  yoy_names <- colnames(yoy)[-1]
-  max_tracer <- nc_out$nvars
-  max_layers <- length(nc_out$dim$z$vals)
-  max_time <- length(nc_out$dim$t$vals)
-  var_names <- names(nc_out$var)
- 
-  
-  cat("### ------------ Creating map from BGM file                              ------------ ###\n")
+  cat("### ------------ Setting up spatial plots                                ------------ ###\n")
   
   # Find number of boxes
   numboxes <- length(grep("# Box number", bgm))
@@ -299,9 +160,25 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
     islands <- sapply(islands,`[`, 2)
   }
   
-  cat("### ------------ Setting up disaggregated spatial plots                  ------------ ###\n")
+  # ------------------------------------- #
+  # -          Whitin Box Plots         - #
+  # ------------------------------------- #
+  
+  # Calculate by biomass by box - this is for the within-box plot
+  biomass_by_box <- bio_agg %>%
+    gather("Code", "value", -c(Time,Box))
+  biomass_by_box <- merge(biomass_by_box, fun_group[,c(1, 2, 4)])
+  biomass_by_box <- arrange(biomass_by_box, Index)
+  biomass_by_box$Name <- factor(biomass_by_box$Name, levels = unique(biomass_by_box$Name))
+  biomass_by_box$Time <- startyear + biomass_by_box$Time/365
+  
+  # ------------------------------------- #
+  # -     Interactive spatial Plots     - #
+  # ------------------------------------- #
+  
   cat("### ------------ This part takes a while                                 ------------ ###\n")
   cat("### ------------ Go grab a kleina                                        ------------ ###\n")
+  
   nums <- grep("Nums", var_names, value = TRUE)
   N <- grep("_N", var_names, value = TRUE)
   N <- N[-grep("_Nums", N, value = FALSE)]
@@ -316,7 +193,6 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   dens <- list()
   sn_list <- list()
   rn_list <- list()
-  fished <- list()
   for (i in 1:length(nums)){
     tempNums <- ncvar_get(nc = nc_out, varid = paste0(vert_group[i],'_Nums'))
     Temp_dens <- apply(tempNums,c(2,3),sum)/areaboxes$area
@@ -329,24 +205,17 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
     tempSN[tempNums<=1e-16] <- NA
     sn_list[[i]] <- tempSN
     rn_list[[i]] <- tempRN
-    # Check if fished
-    gr_name <- gsub('[[:digit:]]+', '', vert_group[i])
-    if (fun_group$isFished[fun_group$Name == gr_name] == 1){
-      fished[[i]] <- ncvar_get(nc = fish_out, varid = paste0(vert_group[i],'_Catch'))
-    }
   }
   names(vars) <- nums
   names(dens) <- nums
   names(sn_list) <- str_N
   names(rn_list) <- res_N
-  names(fished) <- vert_group
   
-
 
   
   # Density N mg per m3 and invertabrates per m2
-  dens_m2 <- list()
-  dens_m3 <- list()
+  dens_km2 <- list()
+  dens_km3 <- list()
   j <- 1
   volume <- ncvar_get(nc = nc_out, varid = 'volume')
   vol <- apply(volume,c(2,3),sum)[,1]
@@ -354,23 +223,29 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
     tempN <- ncvar_get(nc = nc_out, varid = N[i])
     if(length(dim(tempN))==3){
       totBioBox <- tempN*volume
-      Temp_dens_m3 <- apply(totBioBox,c(2,3),sum)/(vol+1e-6)
-      Temp_dens_m3[1,] <- 0 # set as 0 in box 0
-    dens_m3[[i]] <- Temp_dens_m3 
-      Temp_dens_m2 <- apply(totBioBox,c(2,3),sum)/areaboxes$area
-      Temp_dens_m2[1,] <- 0 # set as 0 in box 0
-    dens_m2[[i]] <- Temp_dens_m2 }else
+      Temp_dens_km3 <- apply(totBioBox,c(2,3),sum)/(vol+1e-6) #mg N km3
+      Temp_dens_km3 <- tons(Temp_dens_km3) # convert to tons
+      Temp_dens_km3[1,] <- 0 # set as 0 in box 0
+      Temp_dens_km3 <- Temp_dens_km3[,2:ncol(Temp_dens_km3)] # Low values for time 0
+    dens_km3[[i]] <- Temp_dens_km3 
+      Temp_dens_km2 <- apply(totBioBox,c(2,3),sum)/areaboxes$area # mg N km2
+      Temp_dens_km2 <- tons(Temp_dens_km2) # convert to tons
+      Temp_dens_km2[1,] <- 0 # set as 0 in box 0
+      Temp_dens_km2 <- Temp_dens_km2[,2:ncol(Temp_dens_km2)] # Low values for time 0
+    dens_km2[[i]] <- Temp_dens_km2 }else
     {
       totBioBox <- tempN*areaboxes$area
-      dens_m3[[i]] <- totBioBox/(vol+1e-6)
-      dens_m2[[i]] <- tempN
+      dens_km3[[i]] <- tons(totBioBox/(vol+1e-6))
+      dens_km2[[i]] <- tons(tempN)
       j<- j + 1
     }
   }
-  names(dens_m3) <- N
-  names(dens_m2) <- N
+  names(dens_km3) <- N
+  names(dens_km2) <- N
   
-
+  # ------------------------------------- #
+  # -   Distribution by boxes Plots     - #
+  # ------------------------------------- #
   
   # Create Erla's plots
   nominal_dz <- ncvar_get(nc = nc_out, varid = "nominal_dz")
@@ -464,7 +339,6 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
     }
   }
   
-  # --- End Erla Plots -- #
   
   # extract physical tracers from the ncdf4 object
   phy_names <- names(nc_out$var)[!(names(nc_out$var) %in% tot_num)]
@@ -494,9 +368,6 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
       }
     } else{
       tmp_invert <- adply(tmp, c(1,3))
-      # tmp_invert <- tmp_array %>%
-      #   group_by(X1, X2) %>%
-      #   summarize_each(funs(sum))
       colnames(tmp_invert) <- c("Layer", "Time", paste("Box", 0:(ncol(tmp_invert)-3), sep =" "))
       tmp_invert$Layer <- factor(tmp_invert$Layer,levels(tmp_invert$Layer)[c(((length(unique(tmp_invert$Layer)))-1):1, length(unique(tmp_invert$Layer)))])
       levels(tmp_invert$Layer) <- depth_labels
@@ -538,9 +409,154 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   }
   names(trace_vars) <- trace_names
   
+  # --- End Erla Plots -- #
   
-  cat("### ------------ Setting up data for production output                   ------------ ###\n")
+  
 
+  
+  
+  # ------------------------------------- #
+  # - Reserve/Structural Nitrogen Plots - #
+  # ------------------------------------- #
+
+  cat("### ------------ Setting up aggregated diagnostic plots                  ------------ ###\n")
+  
+  # Aggregate arrays
+  
+  structN <- ldply(sn_list, mean_agg)
+  reserveN <- ldply(rn_list, mean_agg)
+  totalnums <- ldply(vars, sum_agg)
+  
+  structN$.id <- factor(structN$.id, levels = unique(structN$.id))
+  structN$Time <- as.numeric(as.character(structN$X1)) * toutinc / 365 + startyear - 1
+  
+  reserveN$.id <- factor(reserveN$.id, levels = unique(reserveN$.id))
+  reserveN$Time <- as.numeric(as.character(reserveN$X1)) * toutinc / 365 + startyear - 1 
+  
+  totalnums$.id <- factor(totalnums$.id, levels = unique(totalnums$.id))
+  totalnums$Time <- as.numeric(as.character(totalnums$X1)) * toutinc / 365 + startyear - 1
+  
+  
+  # ------------------------------------- #
+  # -            Diet Plots             - #
+  # ------------------------------------- #
+  
+
+  cat("### ------------ Setting up diet matrix plot                             ------------ ###\n")    
+  diet <- read.table(paste(outdir, ncout, "DietCheck.txt", sep = ""), header = TRUE, stringsAsFactors = TRUE)
+  #     if(any(names(diet) == "Predator")) {
+  #       colnames(diet) <- c("Time", "Code", "Habitat", fun_group[,4])
+  #     } else {
+  colnames(diet) <- c("Time", "Code", "Cohort", "Stock", fun_group[,4])
+  #    }
+  diet <- merge(diet, fun_group[,c(1,2,4)])
+  diet <- arrange(diet, Index)
+  diet$Code <- diet$Name
+  diet$Name <- NULL; diet$Index <- NULL
+  
+  if(any(names(diet) == "Habitat")){
+    diet_l <- diet %>%
+      gather("Prey", "eaten", 4:ncol(diet))
+    colnames(diet_l) <- c("Predator","Time","Habitat", "Prey", "eaten")
+  } else {
+    diet_l <- diet %>%
+      gather("Prey", "eaten", 5:ncol(diet))
+    colnames(diet_l) <- c("Predator","Time","Cohort", "Stock", "Prey", "eaten")
+  }
+  diet_l <- diet_l[diet_l$Time > 0,]  # delete lines at time 0 because 0 diet
+  diet_l$Time <- startyear + diet_l$Time/365
+  tot_pred <- diet_l %>%
+    group_by(Predator,Prey) %>%
+    summarize(Eaten = mean(eaten))
+  diet_l <- data.table(diet_l)
+  tot_pred <- as.data.frame(tot_pred)
+  
+  
+  
+
+  
+  cat("### ------------ Setting up summary plot                                 ------------ ###\n")    
+  
+  
+  # ------------------------------------- #
+  # -          Summary Plots            - #
+  # ------------------------------------- #
+  
+  ## Biomass Plots
+  rel_bio <- biomass[,c(1, grep("Rel",colnames(biomass)))]
+  tot_bio <- biomass[,c(1:(grep("Rel",colnames(biomass))[1]-1))]
+  # Biomass Long
+  tot_bio_l <- tot_bio %>%
+    gather("Code", "value", -Time)
+  # Subset vertebrates
+  tot_bio_v <- filter(tot_bio_l, Code %in% rs_codes)
+  # Subset invertebrates
+  tot_bio_i <- filter(tot_bio_l, !(Code %in% rs_codes))
+  tot_bio_v <- merge(tot_bio_v, fun_group[c(1,2,4)], by = "Code")
+  tot_bio_v <- arrange(tot_bio_v, Index)
+  tot_bio_v$Name <- factor(tot_bio_v$Name, levels = unique(tot_bio_v$Name))
+  tot_bio_v$Time <- startyear + tot_bio_v$Time/365
+  tot_bio_i <- merge(tot_bio_i, fun_group[c(1,2,4)], by = "Code")
+  tot_bio_i <- arrange(tot_bio_i, Index)
+  tot_bio_i$Name <- factor(tot_bio_i$Name, levels = unique(tot_bio_i$Name))
+  tot_bio_i$Time <- startyear + tot_bio_i$Time/365
+  
+  colnames(rel_bio) <- c("Time", fun_group$Name, "DIN")
+  colnames(tot_bio) <- c("Time", fun_group$Name, "DIN")
+  rel_bio$Time <- startyear + rel_bio$Time/365
+  tot_bio$Time <- startyear + tot_bio$Time/365
+  
+  ## YOY Plots
+  # Get recruitment SN and RN weight
+  kwrr <- grep("KWRR", biolprm, value = T)
+  kwrr_split <- unlist(str_split_fixed(kwrr, pattern = ' ', n = 2))
+  kwrr_split <- apply(kwrr_split,2, str_trim, side = "both")
+  kwrr_group <- str_split_fixed(kwrr_split[,1], pattern = '_', n = 2)[,2]
+  kwrr_param <- str_split_fixed(kwrr_split[,2], pattern = ' ', n = 2)[,1]
+  
+  kwsr <- grep("KWSR", biolprm, value = T)
+  kwsr_split <- unlist(str_split_fixed(kwsr, pattern = ' ', n = 2))
+  kwsr_split <- apply(kwsr_split,2, str_trim, side = "both")
+  kwsr_group <- str_split_fixed(kwsr_split[,1], pattern = '_', n = 2)[,2]
+  kwsr_param <- str_split_fixed(kwsr_split[,2], pattern = ' ', n = 2)[,1]
+  
+  kwrr <- data.frame(group = kwrr_group, 'kwrr' = as.numeric(as.character(kwrr_param)))
+  kwsr <- data.frame(group = kwsr_group, 'kwsr' = as.numeric(as.character(kwsr_param)))
+  kwrr_kwsr_params <- merge(kwrr, kwsr)
+  kwrr_kwsr_params$weight <- kwrr_kwsr_params$kwrr + kwrr_kwsr_params$kwsr
+  kwrr_kwsr_params$weightTons <- kwrr_kwsr_params$weight*20*xCN/1e9
+  
+  yoy_nums <- matrix(rep(NA,dim(yoy)[1]*dim(yoy)[2]), ncol = dim(yoy)[2])
+  for(i in 2:ncol(yoy)){
+    findColumn <- paste(kwrr_kwsr_params$group,'.0',sep='') == names(yoy)[i]
+    yoy_nums[, i] <- yoy[,i] / kwrr_kwsr_params$weightTons[findColumn]
+  }
+  yoy_nums[,1] <- yoy$Time
+  yoy_nums <- as.data.frame(yoy_nums)
+  
+  # Rename columns
+  colnames(yoy) <- c("Time", rs_names)
+  colnames(yoy_nums) <- c("Time", rs_names)
+  
+  yoy$Time <- startyear + yoy$Time/365
+  yoy_nums$Time <- startyear + yoy_nums$Time/365
+  
+  ## SSB PLOTS
+  colnames(ssb) <- c("Time", rs_names)
+  ssb$Time <- startyear + ssb$Time/365
+  
+  #yoy[ssb$Time< 356 & ssb[1:ncol(ssb)] == 0] <- NA # Set rec as NA before SSB is calculated
+  #ssb[ssb$Time< 356 & ssb[1:ncol(ssb)] == 0] <- NA # Set SSB as NA before SSB is calculated
+  
+  # Labels
+  ssb_names <- colnames(ssb)[-1]
+  yoy_names <- colnames(yoy)[-1]
+  
+  
+
+  # Subset invertebrates
+  invert_names <-fun_group[!(fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD")),]
+  
   # Create the production output
   prod_names <- names(prod_out$var)
   t <- prod_out$dim$t$vals
@@ -573,40 +589,190 @@ create_vadt <- function(outdir, fgfile, biolprm, ncout, startyear, toutinc, diet
   vert_l <- vert_all %>%
     gather("variable", "value", -id)
   
-  cat("### ------------ Setting up aggregated diagnostic plots                  ------------ ###\n")
-  
-  # Subset invertebrates
-  invert_names <-fun_group[!(fun_group$GroupType %in% c("FISH", "MAMMAL", "SHARK", "BIRD")),]
-  
   
   # ------------------------------------- #
-  # - Reserve/Structural Nitrogen Plots - #
+  # -        Fisheries Plots            - #
   # ------------------------------------- #
+  
+  
+  if(fishing){
+    cat("### ------------ Setting up fisheries plots                              ------------ ###\n")
+    # Read in Data
+    fish_groups <- read.csv(fishfile, header = T, stringsAsFactors = FALSE)
+    fish_total <- read.table(paste(outdir, ncout, "Catch.txt", sep = ""), header = T)
+    fish_fishery <- read.table(paste(outdir, ncout, "CatchPerFishery.txt", sep = ""), header = T)
+    discard_total <- read.table(paste(outdir, ncout, "Discard.txt", sep = ""), header = T)
+    discard_fishery <- read.table(paste(outdir, ncout, "DiscardPerFishery.txt", sep = ""), header = T)
+    effort <- read.table(paste(outdir, ncout, "Effort.txt", sep = ""), header = T)
+    fish_out <- nc_open(paste(outdir, ncout, "CATCH.nc", sep = ""))
+    fishtot_out <- nc_open(paste(outdir, ncout, "TOTCATCH.nc", sep = ""))
+    
+    # Get variables
+    var_names_fished <- names(fish_out$var)
+    catch_names <- grep("Catch", var_names_fished, value = TRUE)
+    catch_names <- catch_names[-grep('_FC', catch_names)]
+    dis_names <- grep("Discard", var_names_fished, value = TRUE)
+    dis_names <- dis_names[-grep('_FC', dis_names)]
+    names_age <- str_split_fixed(dis_names,'_Discards', n = 2)[,1]
+    fishing_names <- gsub('[[:digit:]]+', '', names_age)
 
-  
-  # Aggregate arrays
-  
-  structN <- ldply(sn_list, mean_agg)
-  reserveN <- ldply(rn_list, mean_agg)
-  totalnums <- ldply(vars, sum_agg)
-  totalfished <- ldply(fished, sum_agg_2)
-  
-  # Delete time 0 for totalfished
-  totalfished <- totalfished[totalfished$X1 !=1,]
-  
-  structN$.id <- factor(structN$.id, levels = unique(structN$.id))
-  structN$Time <- as.numeric(as.character(structN$X1)) * toutinc / 365 + startyear - 1
-  
-  reserveN$.id <- factor(reserveN$.id, levels = unique(reserveN$.id))
-  reserveN$Time <- as.numeric(as.character(reserveN$X1)) * toutinc / 365 + startyear - 1 
-  
-  totalnums$.id <- factor(totalnums$.id, levels = unique(totalnums$.id))
-  totalnums$Time <- as.numeric(as.character(totalnums$X1)) * toutinc / 365 + startyear - 1
-  
-  totalfished$.id <- factor(totalfished$.id, levels = unique(totalfished$.id))
-  totalfished$Time <- as.numeric(as.character(totalfished$X1)) * toutinc / 365 + startyear - 2
-  
-  output <- list(disagg = vars,invert_vars = invert_vars, invert_mnames = invert_mnames, trace_vars = trace_vars, trace_names = trace_names, var_names = tot_num, N_names = N, max_layers = max_layers, max_time = max_time, bioagg_names = bioagg_names, rs_names = rs_names, tot_pred = tot_pred, ssb_names = ssb_names, yoy_names = yoy_names, islands = islands, rel_bio = rel_bio, tot_bio = tot_bio, ssb = ssb, yoy = yoy, structN = structN, reserveN = reserveN, totalnums = totalnums, map_base = map_base, numboxes = numboxes, fun_group = fun_group, invert_names = invert_names, invert_l = invert_l, vert_l = vert_l, ab_params = ab_params, diet_l = diet_l, erla_plots = erla_plots, toutinc = toutinc, startyear = startyear, tot_bio_v = tot_bio_v, tot_bio_i = tot_bio_i, biomass_by_box = biomass_by_box, fgnames = fun_group[,4], fish_fishery_l = fish_fishery_l, fish_tsact_year = fish_tsact_year, fish_biomass_year = fish_biomass_year, fishedFish = fishedFish, dens = dens, fished = fished, dens_m2 = dens_m2, dens_m3 = dens_m3, yoy_nums = yoy_nums, totfished = totalfished, totcatch = totcatch_df_l)
+    
+    # Set up fisheries files
+    ts_act <- grep("TsAct", colnames(fish_total))
+    fish_biomass_year <- fish_total[,1:(ts_act[1] - 1)]
+    fish_tsact_year <- fish_total[, c(1, ts_act)]
+    fish_biomass_year$Time <- startyear + fish_biomass_year$Time/365 
+    fish_tsact_year$Time <- startyear + fish_tsact_year$Time/365
+    fishedFish <- colnames(fish_biomass_year)[-1]
+    fishedFish <- fun_group[match(fishedFish, fun_group$Code), "Name"]
+    colnames(fish_biomass_year) <- c("Time", fishedFish)
+    colnames(fish_tsact_year) <- c("Time", fishedFish)
+    colnames(fish_fishery) <- c("Time", "Fishery", fishedFish)
+    fish_fishery_l <- gather(fish_fishery, "Group", "biomass", 3:ncol(fish_fishery))
+    fish_fishery_l$Time <- startyear + fish_fishery_l$Time/365 
+    fish_biomass_year_l <- gather(fish_biomass_year, 'Group', 'Biomass', 2:ncol(fish_biomass_year))
+    fish_fishery_l$Fishery <- fish_groups$Name[match(fish_fishery_l$Fishery,fish_groups$Code)] 
+    
+    fished_names <- names(fishtot_out$var)
+    fished_catch <- grep("_Catch", fished_names, value = TRUE)
+    fished_catch <- fished_catch[-grep("Avg_Catch_Sze", fished_catch, value = FALSE)]
+    fished_group <- str_split_fixed(fished_catch, '_Catch', n = 2)[,1]
+    fished_group <- str_split_fixed(fished_group, 'Tot_', n = 2)[,2]
+    fished_group_names <- fun_group$Name[match(fished_group, fun_group$Code)] 
+    
+    # For catch by boxes
+    totcatch <- list()
+    for (i in 1:length(fished_group)){
+      totcatch[[i]] <- ncvar_get(nc = fishtot_out, varid = paste0('Tot_', fished_group[i],'_Catch'))
+    }
+    names(totcatch) <- fished_group_names
+    totcatch_df <- ldply (totcatch, data.frame)
+    totcatch_df$Box <- paste('Box',rep(0:(nrow(totcatch[[1]])-1),length(fished_group_names)))
+    totcatch_df_l <- gather(totcatch_df, key = 'Time', value = 'Catch', 2:(ncol(totcatch_df)-1))
+    totcatch_df_l$Time <- as.numeric(gsub("[^0-9]", "", totcatch_df_l$Time, ""))
+    totcatch_df_l <- totcatch_df_l[totcatch_df_l$Time > 1,]
+    totcatch_df_l$Time <- startyear + totcatch_df_l$Time - 2
+    
+    
+    ## Effort Plots
+    effort_l <- effort %>%
+      gather('Fishery', 'Effort', 2:ncol(effort))
+    effort_l$Time <- effort_l$Time/365 + startyear - 1
+    
+    
+    
+    ## Discards Plots
+    
+    # Total discard
+    discard_total_l <- gather(discard_total, 'Group', 'Discards', 2:ncol(discard_total))
+    discard_total_l$Group <- fun_group$Name[match(discard_total_l$Group, fun_group$Code)]
+    discard_total_l$Time <- discard_total_l$Time/365 + startyear
+    discard_total_l <- merge(discard_total_l, fish_biomass_year_l)
+    discard_total_l$prop_disc <- discard_total_l$Discards / (discard_total_l$Biomass + discard_total_l$Discards)
+    
+    # Discard by fishery
+    discard_fishery_l <- gather(discard_fishery, 'Group', 'Discards', 3:ncol(discard_fishery))
+    discard_fishery_l$Group <- fun_group$Name[match(discard_fishery_l$Group, fun_group$Code)]
+    discard_fishery_l$Fishery <- fish_groups$Name[match(discard_fishery_l$Fishery, fish_groups$Code)]
+    discard_fishery_l$Time <- discard_fishery_l$Time/365 + startyear 
+    discard_fishery_l <- merge(discard_fishery_l, fish_fishery_l, all.x = TRUE)
+    discard_fishery_l$prop_disc <- discard_fishery_l$Discards / (discard_fishery_l$biomass + discard_fishery_l$Discards)
+    
+
+    dis_w_list <- list()
+    dis_num_list <- list()
+    catch_num_list <- list()
+    catch_w_list <- list()
+    land_w_list <- list()
+    land_num_list <- list ()
+    le_list <- list()
+    for (i in 1:length(dis_names)){
+      # Get numbers disarded
+      tempDis <- ncvar_get(nc = fish_out, varid = dis_names[i])
+      tempDis <- apply(tempDis,c(2),sum)
+      dis_num_list[[i]] <- tempDis
+      # Get numbers in stock
+      tempNums <- ncvar_get(nc = nc_out, varid = nums[i])
+      # Get weight for each ageclass
+      tempRN <- ncvar_get(nc = nc_out, varid = res_N[i])
+      tempRN[tempNums<=1e-16] <- NA  
+      tempSN <- ncvar_get(nc = nc_out, varid = str_N[i])
+      tempSN[tempNums<=1e-16] <- NA
+      structN_2 <- apply(tempSN,c(3), mean, na.rm = 1)
+      reserveN_2 <- apply(tempRN,c(3), mean, na.rm = 1)
+      wgt_t <- (structN_2 + reserveN_2)*5.7*20/1e+9
+      wgt_g <- (structN_2 + reserveN_2)*5.7*20/1e+3
+      # Get length for ageclass
+      fg_group <- fun_group$Code[fishing_names[i]==fun_group$Name]
+      param_a <- ab_params$a[ab_params$a_name == paste0('li_a_', fg_group)]
+      param_b <- ab_params$b[ab_params$b_name == paste0('li_b_', fg_group)]
+      le_list[[i]] <- (wgt_g/param_a)^(1/param_b)
+      
+      # Get catch
+      tempCat <- ncvar_get(nc = fish_out, varid = catch_names[i])
+      tempCat <- apply(tempCat,c(2),sum)
+      catch_num_list[[i]] <- tempCat + tempDis
+      
+      # Get landings
+      land_num_list[[i]] <- tempCat
+      
+      # Calculated disards, catch and landings in tonnes
+      if(toutfinc == toutinc & length(wgt_t) == length(tempDis)){
+      dis_w_list[[i]] <- wgt_t* tempDis
+      catch_w_list[[i]] <- wgt_t*tempCat + wgt_t*tempDis
+      land_w_list[[i]] <- wgt_t*tempCat
+      } else {
+        dis_w_list <- NULL
+        catch_w_list <- NULL
+        land_w_list <- NULL
+      }
+    }
+    names(dis_num_list) <- dis_names
+    names(catch_num_list) <- catch_names
+    names(land_num_list) <- catch_names
+    names(le_list) <- names_age
+    if(toutfinc == toutinc & length(wgt_t) == length(tempDis)){
+      names(land_w_list) <- catch_names
+      names(catch_w_list) <- catch_names
+      names(dis_w_list) <- dis_names
+    }
+    
+    
+    max_time <- length(fish_out$dim$t$vals)
+    dis_df <- ldply(dis_num_list, data.frame)
+    dis_df$Time <- rep(0:(max_time - 1),nrow(dis_df)/max_time)
+    dis_df$Time <- dis_df$Time * toutfinc / 365 + startyear 
+    names(dis_df) <- c('Group', 'Discard_numb', 'Time')
+    dis_df$Catch_numb <- ldply(catch_num_list, data.frame)$"X..i.."
+    dis_df$Land_numb <- ldply(land_num_list, data.frame)$"X..i.."
+    dis_df$Age <- as.numeric(gsub("[^0-9]", "", dis_df$Group, ""))
+    dis_df$Group <- str_split_fixed(dis_df$Group, '_Discards', n = 2)[,1]
+    dis_df$Functional_Group <- gsub('[[:digit:]]+', '',dis_df$Group)
+
+    if(toutfinc == toutinc & length(wgt_t) == length(tempDis)){
+      dis_df$Discard_weight <- ldply(dis_w_list, data.frame)$"X..i.."
+      dis_df$Land_weight <- ldply(land_w_list, data.frame)$"X..i.."
+      dis_df$Catch_weight <- ldply(catch_w_list, data.frame)$"X..i.."
+      dis_df$Length <- ldply(le_list, data.frame)$"X..i.."
+    }
+    #dis_df <- dis_df[dis_df$Time != startyear,] # Remove time 0 as no catch
+  } else {
+    fish_fishery_l <- NULL
+    totcatch_df_l <- NULL
+    fish_biomass_year <- NULL
+    fish_biomass_year_l <- NULL
+    fishedFish <- NULL
+    effort_l <- NULL
+    dis_df <- NULL
+    discard_total_l <- NULL
+    discard_fishery_l <- NULL
+  }
+
+  if(is.null(dis_w_list)){
+    warning('toutfinc != toutinc: Catch and discard in tonnes by ageclass could not be produced')
+  }
+
+  output <- list(disagg = vars,invert_vars = invert_vars, invert_mnames = invert_mnames, trace_vars = trace_vars, trace_names = trace_names, var_names = tot_num, N_names = N, max_layers = max_layers, max_time = max_time, bioagg_names = bioagg_names, rs_names = rs_names, ssb_names = ssb_names, yoy_names = yoy_names, islands = islands, rel_bio = rel_bio, tot_bio = tot_bio, ssb = ssb, yoy = yoy, structN = structN, reserveN = reserveN, totalnums = totalnums, map_base = map_base, numboxes = numboxes, fun_group = fun_group, invert_names = invert_names, invert_l = invert_l, vert_l = vert_l, ab_params = ab_params, diet_l = diet_l, tot_pred =tot_pred, erla_plots = erla_plots, toutinc = toutinc, startyear = startyear, tot_bio_v = tot_bio_v, tot_bio_i = tot_bio_i, biomass_by_box = biomass_by_box, fgnames = fun_group[,4], fish_fishery_l = fish_fishery_l, fish_biomass_year = fish_biomass_year, fishedFish = fishedFish, dens = dens, dens_km2 = dens_km2, dens_km3 = dens_km3, yoy_nums = yoy_nums, totcatch = totcatch_df_l, fish_biomass_year_l = fish_biomass_year_l, effort_l = effort_l,dis_df = dis_df,discard_total_l = discard_total_l, discard_fishery_l = discard_fishery_l)
   cat("### ------------ vat object created, you can now run the vat application ------------ ###\n") 
   return(output)
   class(output) <- "vadt"
