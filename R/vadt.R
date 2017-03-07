@@ -90,7 +90,7 @@ vadt <- function(obj, anim = NULL){
                                                                 column(8,
                                                                        plotOutput("map_Numb", height = "450px")))),
                                                      
-                                                     tabPanel("Biomass per m2",
+                                                     tabPanel("Tons per km2",
                                                               fluidRow(
                                                                 column(4,
                                                                        wellPanel(
@@ -102,12 +102,12 @@ vadt <- function(obj, anim = NULL){
                                                                                      label = "Choose a time to display",
                                                                                      min = 1,
                                                                                      step = 1,
-                                                                                     max = obj$max_time, 
+                                                                                     max = (obj$max_time - 1), 
                                                                                      value = 1,
                                                                                      round = TRUE))),
                                                                 column(8,
                                                                        plotOutput("map_Bm2", height = "450px")))),
-                                                     tabPanel("Biomass per m3",
+                                                     tabPanel("Tons per m3",
                                                               fluidRow(
                                                                 column(4,
                                                                        wellPanel(
@@ -119,7 +119,7 @@ vadt <- function(obj, anim = NULL){
                                                                                      label = "Choose a time to display",
                                                                                      min = 1,
                                                                                      step = 1,
-                                                                                     max = obj$max_time, 
+                                                                                     max = (obj$max_time - 1), 
                                                                                      value = 1,
                                                                                      round = TRUE))),
                                                                 column(8,
@@ -172,35 +172,44 @@ vadt <- function(obj, anim = NULL){
                                                    fluidRow(column(6,
                                                                    plotOutput("lw_plotg", height = "450px")),
                                                             column(6,
-                                                                   plotOutput("totalbiog", height = "450px")))))),
+                                                                   plotOutput("totalbiog", height = "450px")))),
+                                          tabPanel("Relative weight",
+                                                   fluidRow(column(4),
+                                                            column(4,wellPanel(selectInput("rel",
+                                                                                           label = "Functional Group",
+                                                                                           choices = obj$rs_names)))),
+                                                   fluidRow(column(6,
+                                                                   plotOutput("structn_rel", height = "1200px")),
+                                                            column(6,
+                                                                   plotOutput("reserven_rel", height = "1200px")))))),
                                
                     # The diagnostic plots UI
                     
                     navbarMenu("Diet Data",
                                tabPanel("Diet by Predator",
-                                                  fluidRow(column(4),
-                                                                       column(4,
-                                                                              if(is.null(obj$tot_pred) == FALSE){
-                                                                                wellPanel(selectInput("diet_pred_unagg",
-                                                                                                      label = "Predator",
-                                                                                                      choices = obj$fgnames))}
-                                                                       )),
-                                                              fluidRow(column(12,
-                                                                              if(is.null(obj$tot_pred) == FALSE)
-                                                                                plotOutput("diet_pred_plot", height = "800px")))),
-
+                                        fluidRow(column(4),
+                                                 column(4,
+                                                        if(is.null(obj$tot_pred) == FALSE){
+                                                          wellPanel(selectInput("diet_pred_unagg",
+                                                                                label = "Predator",
+                                                                                choices = obj$fgnames))}
+                                                 )),
+                                        fluidRow(column(12,
+                                                        if(is.null(obj$tot_pred) == FALSE)
+                                                          plotOutput("diet_pred_plot", height = "800px")))),
+                               
                                tabPanel("Diet by Prey",
-                                                              fluidRow(column(4),
-                                                                       column(4,
-                                                                              if(is.null(obj$tot_pred) == FALSE){
-                                                                                wellPanel(selectInput("diet_prey_unagg",
-                                                                                                      label = "Prey",
-                                                                                                      choices = obj$fgnames))}
-                                                                       )),
-                                                              fluidRow(column(12,
-                                                                              if(is.null(obj$tot_pred) == FALSE)
-                                                                                plotOutput("diet_prey_plot", height = "600px")))),
-                                                    
+                                        fluidRow(column(4),
+                                                 column(4,
+                                                        if(is.null(obj$tot_pred) == FALSE){
+                                                          wellPanel(selectInput("diet_prey_unagg",
+                                                                                label = "Prey",
+                                                                                choices = obj$fgnames))}
+                                                 )),
+                                        fluidRow(column(12,
+                                                        if(is.null(obj$tot_pred) == FALSE)
+                                                          plotOutput("diet_prey_plot", height = "600px")))),
+                               
                                tabPanel("Diet by Predator and Prey",
                                         fluidRow(column(2),
                                                  column(4,
@@ -229,7 +238,7 @@ vadt <- function(obj, anim = NULL){
                                                                 column(4,
                                                                        selectInput("tot_vert_scale", 
                                                                                    "Scale Type", 
-                                                                                   c("Unadjusted","Log Scale")))),
+                                                                                   c("Fixed","Free")))),
                                                               fluidRow(
                                                                 column(12,
                                                                        plotOutput("tot_vert_sum", height = "800px")))),
@@ -239,7 +248,7 @@ vadt <- function(obj, anim = NULL){
                                                                 column(4,
                                                                        selectInput("tot_invert_scale", 
                                                                                    "Scale Type", 
-                                                                                   c("Unadjusted","Log Scale")))),
+                                                                                   c("Fixed","Free")))),
                                                               fluidRow( 
                                                                 column(12,
                                                                        plotOutput("tot_invert_sum", height = "800px")))))),
@@ -280,36 +289,141 @@ vadt <- function(obj, anim = NULL){
                                                  column(5,
                                                         plotOutput("invertprod", height = "300px"))))),
                     navbarMenu("Fisheries",
-                               tabPanel("Total Catch By Species",
+                               tabPanel("Catch By Species",
+                                        navlistPanel(widths = c(2, 10),
+                                                     tabPanel("Total Catch",
+                                                              fluidRow(column(4),
+                                                                       column(4,
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE){
+                                                                                wellPanel(
+                                                                                  selectInput("scale", 
+                                                                                              "Scale Type", 
+                                                                                              c("Fixed","Free")))}),
+                                                                       column(4)),
+                                          
+                                                              fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                plotOutput("fish_all", height = "1200px")))),
+                                                     tabPanel("Total Catch By Group",
+                                                              fluidRow(column(4),
+                                                                       column(4,
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE){
+                                                                                wellPanel(
+                                                                                  selectInput("fish_marginal",
+                                                                                              label = "Functional Group",
+                                                                                              choices = obj$fishedFish))}),
+                                                                       column(4)),
+                                                              fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                plotOutput("fish_marginal_map", height = "550px")))),
+                                                     tabPanel("Catch By Ageclass",
+                                                              fluidRow(column(4),
+                                                                       column(4,
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE){
+                                                                                wellPanel(
+                                                                                  selectInput("fish_age",
+                                                                                              label = "Functional Group",
+                                                                                              choices = obj$fishedFish))}),
+                                                                       column(4)),
+                                                              fluidRow(column(6, 
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                                plotOutput("fish_by_age_n", height = "550px")),
+                                                                       column(6, 
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
+                                                                                plotOutput("fish_by_age_w", height = "550px")))))),
+                               tabPanel("Catch By Fisheries",
                                         fluidRow(column(4),
                                                  column(4,
-                                                        wellPanel(
-                                                          selectInput("fish_marginal",
-                                                                      label = "Functional Group",
-                                                                      choices = obj$fishedFish))),
+                                                        if(is.null(obj$fish_fishery_l) == FALSE){
+                                                          wellPanel(
+                                                            selectInput("fish_fishery",
+                                                                        label = "Fishery",
+                                                                        choices = as.character(unique(obj$fish_fishery_l$Fishery))))}),
                                                  column(4)),
-                                        fluidRow(column(12,
-                                                        plotOutput("fish_marginal_map", height = "550px")))),
-                               tabPanel("Total Catch By Fisheries",
-                                        fluidRow(column(4),
-                                                 column(4,
-                                                        wellPanel(
-                                                          selectInput("fish_fishery",
-                                                                      label = "Fishery",
-                                                                      choices = as.character(unique(obj$fish_fishery_l$Fishery))))),
-                                                 column(4)),
-                                        fluidRow(column(12,
-                                                        plotOutput("fish_fishery_map", height = "550px")))),
+                                        fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                          plotOutput("fish_fishery_map", height = "1200px")))),
                                tabPanel("Catch By Boxes",
                                         fluidRow(
                                           column(4),
                                           column(4,
-                                                 selectInput("FishedGroups", 
-                                                             label = 'Functional Group', 
-                                                             choices = unique(obj$totcatch$.id)))),
+                                                 if(is.null(obj$fish_fishery_l) == FALSE){
+                                                   selectInput("FishedGroups", 
+                                                               label = 'Functional Group', 
+                                                               choices = unique(obj$totcatch$.id))})),
                                         fluidRow(
-                                          column(12,
-                                                 plotOutput("Catch_box", height = "800px")))))),
+                                          column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                            plotOutput("Catch_box", height = "1200px")))),
+                               tabPanel("Effort By Fishery",
+                                        fluidRow(
+                                          column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                            plotOutput("effort", height = "800px")))),
+                               tabPanel("Discards By Group",
+                                        fluidRow(column(4),
+                                                 column(4,
+                                                        if(is.null(obj$fish_fishery_l) == FALSE){
+                                                          wellPanel(selectInput("disc_Group",
+                                                                                label = "Functional Group",
+                                                                                choices = obj$fishedFish))})),
+                                        fluidRow(
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
+                                                   plotOutput("Total_discard_w", height = "450px")),
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                   plotOutput("Total_discard_numb", height = "450px"))),
+                                        fluidRow(
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE  & is.null(obj$dis_df$Length) == FALSE)
+                                                   plotOutput("prop_disc_w", height = "450px")),
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                   plotOutput("prop_disc_numb", height = "450px"))),
+                                        fluidRow(
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                   plotOutput("prop_age", height = "450px")),
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                   plotOutput("disc_age", height = "450px"))),
+                                        fluidRow(
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
+                                                   plotOutput("prop_length", height = "450px")),
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
+                                                   plotOutput("disc_length", height = "450px"))),
+                                        fluidRow(
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                   plotOutput("discard_numb_age", height = "450px")),
+                                          column(6, 
+                                                 if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Discard_weight) == FALSE)
+                                                   plotOutput("discard_weight_age", height = "450px")))),
+                               tabPanel("Discard Summary",
+                                        navlistPanel(widths = c(2, 10),
+                                                     tabPanel("Total Discard By Group",
+                                                              fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                plotOutput("discard_group", height = "1200px")))),
+                                                     tabPanel("Total Discard By Fishery",
+                                                              fluidRow(column(4),
+                                                                       column(4,
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE){
+                                                                                wellPanel(
+                                                                                  selectInput("disc_fishery",
+                                                                                              label = "Fishery",
+                                                                                              choices = unique(obj$discard_fishery_l$Fishery)))}),
+                                                                       column(4)),
+                                                              fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                plotOutput("discard_fishery", height = "1200px")))),
+                                                     tabPanel("Total Discard of a Group by Fishery",
+                                                              fluidRow(column(4),
+                                                                       column(4,
+                                                                              if(is.null(obj$fish_fishery_l) == FALSE){
+                                                                                wellPanel(
+                                                                                  selectInput("disc_group",
+                                                                                              label = "Fishery",
+                                                                                              choices = obj$fishedFish))}),
+                                                                       column(4)),
+                                                              fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
+                                                                plotOutput("discard_fishery_group", height = "550px")))))))),
     server = function(input, output) {
       
       # -----------------------------------------
@@ -345,11 +459,11 @@ vadt <- function(obj, anim = NULL){
       
       # Plot Biomass per m2
       output$map_Bm2 <- renderPlot({
-        tmp <- obj$dens_m2[[input$trace_sm]]
+        tmp <- obj$dens_km2[[input$trace_sm]]
         tmp.min <- min(tmp)
         tmp.max <- max(tmp)
         tmp.mid <- min(tmp)
-        tmp <- obj$dens_m2[[input$trace_sm]][,input$trace_time]
+        tmp <- obj$dens_km2[[input$trace_sm]][,input$trace_time]
         
         # Plot islands with a different color
         if(is.character(obj$islands)){
@@ -369,11 +483,11 @@ vadt <- function(obj, anim = NULL){
       
        # Plot biomass per m3
        output$map_Bm3 <- renderPlot({
-         tmp <- obj$dens_m3[[input$invert_sm]]
+         tmp <- obj$dens_km3[[input$invert_sm]]
          tmp.min <- min(tmp)
          tmp.max <- max(tmp)
          tmp.mid <- min(tmp)
-         tmp <- obj$dens_m3[[input$invert_sm]][,input$invert_time]
+         tmp <- obj$dens_km3[[input$invert_sm]][,input$invert_time]
          
          # Plot islands with a different color
          if(is.character(obj$islands)){
@@ -566,6 +680,43 @@ vadt <- function(obj, anim = NULL){
         ggplot(data = lw_data, aes(y = length, x = Time)) + geom_line(aes(group = .id, color = .id), size = 2, alpha = .75) +  scale_x_continuous(breaks=round(as.numeric(quantile(lw_data$Time, probs = seq(0, 1, .2))))) + ylab("Length-At-Age (cm)") + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10) + theme_bw()  + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2, color = "black")) + xlab("Year")
       })
       
+      
+      
+      # Relative change in weight
+      #tmp <- within(tmp, Box <- factor(Box, levels = paste("Box", 0:(nrbox-1))))   ## Order the graphs by box number
+      # Structural nitrogen
+      output$structn_rel <- renderPlot({
+        sn_ids <- paste(input$rel, 1:10, "_StructN", sep = "")
+        dat_sn <- subset(obj$structN, .id %in% sn_ids)
+        dat_sn$age <- paste('Ageclass',gsub("[^0-9]", "", dat_sn$.id, ""))
+        maxage <- max(as.numeric(gsub("[^0-9]", "", dat_sn$.id, "")))
+        dat_sn <- within(dat_sn, age <- factor(age, levels = paste('Ageclass', 1:maxage)))
+        dat_sn$rel <- NA
+        for (i in as.character(unique(dat_sn$.id))){
+          dat_sn$rel[dat_sn$.id == i] <- dat_sn$V1[dat_sn$.id == i] / dat_sn$V1[dat_sn$.id == i & dat_sn$X1 == 1]
+        }
+        ggplot(data = dat_sn, aes(y = rel, x = Time)) + geom_line() + facet_wrap(~ age, scales = "fixed", ncol = 1) + 
+          scale_x_continuous(breaks=round(as.numeric(quantile(dat_sn$Time, probs = seq(0, 1, .2))))) + ylab("Change in Structural weight")  + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10)  + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + xlab("Year") + geom_abline(slope = 0, intercept = 1.2, linetype=3) + geom_abline(slope = 0, intercept = 0.8, linetype=3)
+        })
+      
+      # Reserve nitrogen
+      output$reserven_rel <- renderPlot({
+        rn_ids <- paste(input$rel, 1:10, "_ResN", sep = "")
+        dat_rn <- subset(obj$reserveN, .id %in% rn_ids)
+        dat_rn$age <- paste('Ageclass',gsub("[^0-9]", "", dat_rn$.id, ""))
+        maxage <- max(as.numeric(gsub("[^0-9]", "", dat_rn$.id, "")))
+        dat_rn <- within(dat_rn, age <- factor(age, levels = paste('Ageclass', 1:maxage)))
+        dat_rn$rel <- NA
+        for (i in as.character(unique(dat_rn$.id))){
+          dat_rn$rel[dat_rn$.id == i] <- dat_rn$V1[dat_rn$.id == i] / dat_rn$V1[dat_rn$.id == i & dat_rn$X1 == 1]
+        }
+        ggplot(data = dat_rn, aes(y = rel, x = Time)) + geom_line() + facet_wrap(~ age, scales = "fixed", ncol = 1) + 
+          scale_x_continuous(breaks=round(as.numeric(quantile(dat_rn$Time, probs = seq(0, 1, .2))))) + ylab("Change in Reserve weight")  + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10)  + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + xlab("Year") + geom_abline(slope = 0, intercept = 1.2, linetype=3) + geom_abline(slope = 0, intercept = 0.8, linetype=3)
+      })
+      
+      
+      
+      
       # DIET DATA TAB
       # -----------------------------------------
       # Diet Predator by prey
@@ -590,7 +741,7 @@ vadt <- function(obj, anim = NULL){
             scale_x_continuous(breaks=round(as.numeric(quantile(predConsume$Time, probs = seq(0, 1, .2))))) + ylab("Proportion of Diet") + ggtitle(paste("Diet of ", predConsume[[1]][1], " by Habitat", sep = "")) + facet_wrap(~ Prey) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2))
         } else {
           ggplot(data = predConsume, aes(x = Time, y = eaten, color = as.character(Cohort))) + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10) + xlab("Year") +  
-            scale_x_continuous(breaks=round(as.numeric(quantile(predConsume$Time, probs = seq(0, 1, .2))))) + ylab("Proportion of Diet") + ggtitle(paste("Diet of ", predConsume[[1]][1], " by Age Class", sep = "")) + facet_wrap(~ Prey) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2))
+            scale_x_continuous(breaks=round(as.numeric(quantile(predConsume$Time, probs = seq(0, 1, .2))))) + ylab("Proportion of Diet") + ggtitle(paste("Diet of ", predConsume$Predator[1], " by Age Class", sep = "")) + facet_wrap(~ Prey) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2))
         }
       })
       
@@ -614,17 +765,19 @@ vadt <- function(obj, anim = NULL){
       
       # Total biomass trellis
       output$tot_vert_sum <- renderPlot({
-        if(input$tot_vert_scale == "Unadjusted"){
-          qplot(x = Time, y = value, data = obj$tot_bio_v, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free") + xlab("Year") + ylab("Total Biomass") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_v$Time, probs = seq(0, 1, .2)))))
+        if(input$tot_vert_scale == "Fixed"){
+          qplot(x = Time, y = value, data = obj$tot_bio_v, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "fixed") + xlab("Year") + ylab("Total Biomass") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_v$Time, probs = seq(0, 1, .2)))))
         } else {
-          qplot(x = Time, y = log(value), data = obj$tot_bio_v, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free_x") + xlab("Year") + ylab("Log(Total Biomass)") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_v$Time, probs = seq(0, 1, .2)))))
+          qplot(x = Time, y = value, data = obj$tot_bio_v, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free") + xlab("Year") + ylab("Total Biomass") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_v$Time, probs = seq(0, 1, .2)))))
         }
       })
+      
+      
       output$tot_invert_sum <- renderPlot({
-        if(input$tot_invert_scale == "Unadjusted"){
-          qplot(x = Time, y = value, data = obj$tot_bio_i, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free") + xlab("Year") + ylab("Total Biomass") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_i$Time, probs = seq(0, 1, .2)))))
+        if(input$tot_invert_scale == "Fixed"){
+          qplot(x = Time, y = value, data = obj$tot_bio_i, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "fixed") + xlab("Year") + ylab("Total Biomass") + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_i$Time, probs = seq(0, 1, .2)))))
         } else {
-          qplot(x = Time, y = log(value), data = obj$tot_bio_i, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free_x") + xlab("Year") + ylab("Log(Total Biomass)") + theme_bw()  + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_i$Time, probs = seq(0, 1, .2)))))
+          qplot(x = Time, y = value, data = obj$tot_bio_i, geom = "line") + facet_wrap(~Name, ncol = 4, scales = "free") + xlab("Year") + ylab("Total Biomass") + theme_bw()  + scale_x_continuous(breaks=round(as.numeric(quantile(obj$tot_bio_i$Time, probs = seq(0, 1, .2)))))
         }
       })
       
@@ -699,27 +852,192 @@ vadt <- function(obj, anim = NULL){
       # -----------------------------------------
       # FISHERIES TAB
       # ----------------------------------------- 
-      
+      output$fish_all <- renderPlot({
+        if(input$scale == "Free"){
+        ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, scales = "free", ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)") } else {
+          ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)")
+        }})
       
       output$fish_marginal_map <- renderPlot({
-        qplot(y = obj$fish_biomass_year[[match(input$fish_marginal, names(obj$fish_biomass_year))]], x = Time, data = obj$fish_biomass_year, geom = "line") +  ylab("Catch (tons)") + xlab("Year")
+        qplot(y = obj$fish_biomass_year[[match(input$fish_marginal, names(obj$fish_biomass_year))]], x = Time, data = obj$fish_biomass_year, geom = "line") + theme_bw() +  ylab("Catch (tons)") + xlab("Year")
       })
+      
+      # Catch by ageclass
+      
+      output$fish_by_age_n <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$fish_age,]
+        tmp$Age <- as.character(tmp$Age)
+        ggplot(data = tmp, aes(y = Catch_numb, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Catch (numbers)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+      })
+      
+      output$fish_by_age_w <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$fish_age,]
+        tmp$Age <- as.character(tmp$Age)
+        ggplot(data = tmp, aes(y = Catch_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Catch (tonnes)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+      })
+      
+      
+
+    # Catch by Fishery  
+      
       
       output$fish_fishery_map <- renderPlot({
         tmp <- subset(obj$fish_fishery_l, Fishery == input$fish_fishery)
-        ggplot(aes(y = biomass, x = Time), data = tmp) + geom_line() + facet_wrap(~Species) + xlab("Time") + ylab("Biomass (tons)")
+        ggplot(aes(y = biomass, x = Time), data = tmp) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)")
       })
       
       output$Catch_box <- renderPlot({
         tmp <- obj$totcatch[obj$totcatch$".id" == input$FishedGroups,]
         nrbox <- length(unique(tmp$Box))
         tmp <- within(tmp, Box <- factor(Box, levels = paste("Box", 0:(nrbox-1))))   ## Order the graphs by box number
-        ggplot(data = tmp, aes(y = Catch, x = Time)) + geom_line(size = 1) + ylab("") + xlab("Year") + facet_wrap(~ Box, ncol = 5) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL))) +  
-          scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2))
+        ggplot(data = tmp, aes(y = Catch, x = Time)) + facet_wrap(~Box, ncol = 5) + theme_bw() + geom_line(size = 1) + ylab("") + xlab("Year")
         
       })
       
       
+      output$effort <- renderPlot({
+        ggplot(y = Effort, x = Time, data = obj$effort_l, geom = "line") + facet_wrap(~ Fishery, ncol = 5, scales = 'free') +  ylab("Effort (days)") + xlab("Year")
+      })
+      
+      # Discards plots
+      
+      output$Total_discard_w <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Time) %>%
+          summarise(Total_Discard = sum(Discard_weight))
+        ggplot(data = tmp, aes(y = Total_Discard, x = Time))+ geom_line() + theme_bw() +  ylab("Total discarded (tonnes)") + xlab("Time")
+      })
+      
+      output$prop_disc_w <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Time) %>%
+          summarise(Total_Discard = sum(Discard_weight),
+                    Total_Catch = sum(Catch_weight),
+                    prop_disc = Total_Discard / (Total_Catch + 1e-06))
+        ggplot(data = tmp, aes(y = prop_disc, x = Time))+ geom_line() + theme_bw() +  ylab("Proportion discarded by weight") + xlab("Time") +
+          scale_y_continuous(limits = c(0, 1))
+      })
+      
+      output$Total_discard_numb <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Time) %>%
+          summarise(Total_Discard = sum(Discard_numb))
+        ggplot(data = tmp, aes(y = Total_Discard, x = Time))+ geom_line() + theme_bw() +  ylab("Total discarded (numbers)") + xlab("Time")
+      })
+      
+      output$prop_disc_numb <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Time) %>%
+          summarise(Total_Discard = sum(Discard_numb),
+                    Total_Catch = sum(Catch_numb),
+                    prop_disc = Total_Discard / (Total_Catch + 1e-06))
+        ggplot(data = tmp, aes(y = prop_disc, x = Time))+ geom_line() + theme_bw() +  ylab("Proportion discarded by numbers") + xlab("Time") +
+          scale_y_continuous(limits = c(0, 1))
+      })
+      
+      output$disc_age <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Age) %>%
+          summarise(Total_Land = sum(Land_numb),
+                    Total_Catch = sum(Catch_numb))
+        tmp_l <- gather(tmp, 'type', 'numbers', 2:3)
+        ggplot(data = tmp_l, aes(y = numbers, x = Age, group = type, color = type)) + 
+          geom_line() + theme_bw() +
+          ylab("Numbers") + xlab("Ageclass") +
+          scale_colour_discrete(name=" ",
+                                breaks=c( "Total_Catch", "Total_Land"),
+                                labels=c("Total catch", "Total landings"))
+      })
+      
+      
+      output$prop_age <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Age) %>%
+          summarise(Total_Discard = sum(Discard_numb),
+                    Total_Catch = sum(Catch_numb),
+                    prop_disc = Total_Discard / Total_Catch)
+        ggplot(data = tmp, aes(y = prop_disc, x = Age)) + 
+          geom_line() + theme_bw() +  
+          ylab("Proportion discarded") + xlab("Ageclass")
+      })
+      
+      
+      output$disc_length <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Age) %>%
+          summarise(Total_Land = sum(Land_numb),
+                    Total_Catch = sum(Catch_numb),
+                    Length = mean(Length))
+        tmp_l <- gather(tmp, 'type', 'numbers', 2:3)
+        ggplot(data = tmp_l, aes(y = numbers, x = Length, group = type, color = type)) + 
+          geom_line() + theme_bw() +  
+          ylab("Numbers") + xlab("Length (cm)") +
+          scale_colour_discrete(name=" ",
+                                breaks=c( "Total_Catch", "Total_Land"),
+                                labels=c("Total catch", "Total landings")) 
+      })
+      
+      
+      output$prop_length <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp <- tmp %>%
+          group_by(Age) %>%
+          summarise(Total_Discard = sum(Discard_numb),
+                    Total_Catch = sum(Catch_numb),
+                    Length = mean(Length),
+                    prop_disc = Total_Discard / Total_Catch)
+        ggplot(data = tmp, aes(y = prop_disc, x = Length)) + 
+          geom_line() + theme_bw() +  
+          ylab("Proportion discarded") + xlab("Length (cm)")
+      })
+      
+      
+      output$discard_numb_age <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        ggplot(data = tmp, aes(y = Discard_numb, x = Time, group = Age, color = Age )) + 
+          geom_line() + theme_bw() +  
+          ylab("Proportion discarded") + xlab("Ageclass")
+      })
+      
+      output$discard_numb_age <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp$Age <- as.character(tmp$Age)
+        ggplot(data = tmp, aes(y = Discard_numb, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Total discarded (numbers)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+      })
+      
+      
+      output$discard_weight_age <- renderPlot({
+        tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
+        tmp$Age <- as.character(tmp$Age)
+        ggplot(data = tmp, aes(y = Discard_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Total discarded (tonnes)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+      })
+      
+      
+      output$discard_group <- renderPlot({
+        ggplot(data = obj$discard_total_l, aes(y = Discards, x = Time)) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + geom_line(size = 1, alpha = .75) + xlab("Year") + ylab("Discard (tonnes)")
+      })
+      
+      output$discard_fishery <- renderPlot({
+        tmp <- obj$discard_fishery_l[obj$discard_fishery_l$Fishery == input$disc_fishery,]
+        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tonnes)") +
+          scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))
+      })
+      
+      output$discard_fishery_group <- renderPlot({
+        tmp <- obj$discard_fishery_l[obj$discard_fishery_l$Group == input$disc_group,]
+        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Fishery, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tonnes)")
+      })
+      
+
+      
+
     }
   )
 }
