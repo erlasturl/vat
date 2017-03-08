@@ -368,11 +368,11 @@ vadt <- function(obj, anim = NULL){
                                                    plotOutput("Total_discard_w", height = "450px")),
                                           column(6, 
                                                  if(is.null(obj$fish_fishery_l) == FALSE)
-                                                   plotOutput("Total_discard_numb", height = "450px"))),
+                                                   plotOutput("prop_disc_w", height = "450px"))),
                                         fluidRow(
                                           column(6, 
                                                  if(is.null(obj$fish_fishery_l) == FALSE  & is.null(obj$dis_df$Length) == FALSE)
-                                                   plotOutput("prop_disc_w", height = "450px")),
+                                                   plotOutput("Total_discard_numb", height = "450px")),
                                           column(6, 
                                                  if(is.null(obj$fish_fishery_l) == FALSE)
                                                    plotOutput("prop_disc_numb", height = "450px"))),
@@ -805,7 +805,7 @@ vadt <- function(obj, anim = NULL){
       
       # YOY map
       output$yoy_map <- renderPlot({
-        tmp <- obj$yoy[,c('Time',input$ssb_var)]
+        tmp <- obj$yoy_nums[,c('Time',input$ssb_var)]
         tmp_ssb <- obj$ssb[,input$ssb_var]
         names(tmp) <- c('Time','Group')
         stTime <- tmp$Time[1]
