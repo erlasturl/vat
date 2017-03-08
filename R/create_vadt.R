@@ -698,15 +698,15 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
     le_list <- list()
     for (i in 1:length(dis_names)){
       # Get numbers disarded
-      tempDis <- ncvar_get(nc = fish_out, varid = dis_names[i])
+      tempDis <- ncvar_get(nc = fish_out, varid = paste0(names_age[i],'_Discards'))
       tempDis <- apply(tempDis,c(2),sum)
       dis_num_list[[i]] <- tempDis
       # Get numbers in stock
-      tempNums <- ncvar_get(nc = nc_out, varid = nums[i])
+      tempNums <- ncvar_get(nc = nc_out, varid = paste0(names_age[i],'_Nums'))
       # Get weight for each ageclass
-      tempRN <- ncvar_get(nc = nc_out, varid = res_N[i])
+      tempRN <- ncvar_get(nc = nc_out, varid = paste0(names_age[i],'_ResN'))
       tempRN[tempNums<=1e-16] <- NA  
-      tempSN <- ncvar_get(nc = nc_out, varid = str_N[i])
+      tempSN <- ncvar_get(nc = nc_out, varid = paste0(names_age[i],'_StructN'))
       tempSN[tempNums<=1e-16] <- NA
       structN_2 <- apply(tempSN,c(3), mean, na.rm = 1)
       reserveN_2 <- apply(tempRN,c(3), mean, na.rm = 1)
@@ -719,7 +719,7 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
       le_list[[i]] <- (wgt_g/param_a)^(1/param_b)
       
       # Get catch
-      tempCat <- ncvar_get(nc = fish_out, varid = catch_names[i])
+      tempCat <- ncvar_get(nc = fish_out, varid = paste0(names_age[i],'_Catch'))
       tempCat <- apply(tempCat,c(2),sum)
       catch_num_list[[i]] <- tempCat + tempDis
       
@@ -737,14 +737,14 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
         land_w_list <- NULL
       }
     }
-    names(dis_num_list) <- dis_names
-    names(catch_num_list) <- catch_names
-    names(land_num_list) <- catch_names
+    names(dis_num_list) <- names_age
+    names(catch_num_list) <- names_age
+    names(land_num_list) <- names_age
     names(le_list) <- names_age
     if(toutfinc == toutinc & length(wgt_t) == length(tempDis)){
-      names(land_w_list) <- catch_names
-      names(catch_w_list) <- catch_names
-      names(dis_w_list) <- dis_names
+      names(land_w_list) <- names_age
+      names(catch_w_list) <- names_age
+      names(dis_w_list) <- names_age
     }
     
     
@@ -756,7 +756,6 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
     dis_df$Catch_numb <- ldply(catch_num_list, data.frame)$"X..i.."
     dis_df$Land_numb <- ldply(land_num_list, data.frame)$"X..i.."
     dis_df$Age <- as.numeric(gsub("[^0-9]", "", dis_df$Group, ""))
-    dis_df$Group <- str_split_fixed(dis_df$Group, '_Discards', n = 2)[,1]
     dis_df$Functional_Group <- gsub('[[:digit:]]+', '',dis_df$Group)
 
     if(toutfinc == toutinc & length(wgt_t) == length(tempDis)){
