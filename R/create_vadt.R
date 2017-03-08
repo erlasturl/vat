@@ -35,13 +35,7 @@
 #' toutfinc = 365
 #' obj <- create_vadt(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing, fishfile, toutfinc)
 #' }
-setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
-outdir = "OutM53BioV190FMV88_neq/"; funfile = "GroupsIcelandFMA.csv"
-fishfile = 'FisheriesIceland.csv'
-ncout = "Out"; startyear = 1948; toutinc = 91
-biolprm = "BioV183.prm"
-fishing <- TRUE
-toutfinc = 91
+
 
 create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing = FALSE, fishfile = NULL, toutfinc = 365){
   # contants
