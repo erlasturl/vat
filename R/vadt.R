@@ -289,9 +289,9 @@ vadt <- function(obj, anim = NULL){
                                                  column(5,
                                                         plotOutput("invertprod", height = "300px"))))),
                     navbarMenu("Fisheries",
-                               tabPanel("Catch By Species",
+                               tabPanel("Landings By Species",
                                         navlistPanel(widths = c(2, 10),
-                                                     tabPanel("Total Catch",
+                                                     tabPanel("Total Landings",
                                                               fluidRow(column(4),
                                                                        column(4,
                                                                               if(is.null(obj$fish_fishery_l) == FALSE){
@@ -303,7 +303,7 @@ vadt <- function(obj, anim = NULL){
                                           
                                                               fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
                                                                 plotOutput("fish_all", height = "1200px")))),
-                                                     tabPanel("Total Catch By Group",
+                                                     tabPanel("Total Landings By Group",
                                                               fluidRow(column(4),
                                                                        column(4,
                                                                               if(is.null(obj$fish_fishery_l) == FALSE){
@@ -314,7 +314,7 @@ vadt <- function(obj, anim = NULL){
                                                                        column(4)),
                                                               fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
                                                                 plotOutput("fish_marginal_map", height = "550px")))),
-                                                     tabPanel("Catch By Ageclass",
+                                                     tabPanel("Landings By Ageclass",
                                                               fluidRow(column(4),
                                                                        column(4,
                                                                               if(is.null(obj$fish_fishery_l) == FALSE){
@@ -329,7 +329,7 @@ vadt <- function(obj, anim = NULL){
                                                                        column(6, 
                                                                               if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
                                                                                 plotOutput("fish_by_age_w", height = "550px")))))),
-                               tabPanel("Catch By Fisheries",
+                               tabPanel("Landings By Fisheries",
                                         fluidRow(column(4),
                                                  column(4,
                                                         if(is.null(obj$fish_fishery_l) == FALSE){
@@ -340,7 +340,7 @@ vadt <- function(obj, anim = NULL){
                                                  column(4)),
                                         fluidRow(column(12, if(is.null(obj$fish_fishery_l) == FALSE)
                                           plotOutput("fish_fishery_map", height = "1200px")))),
-                               tabPanel("Catch By Boxes",
+                               tabPanel("Landings By Boxes",
                                         fluidRow(
                                           column(4),
                                           column(4,
@@ -749,9 +749,9 @@ vadt <- function(obj, anim = NULL){
       output$diet_prey_plot <- renderPlot({
         data_dpp <- subset(obj$diet_l, Prey == input$diet_prey_unagg)
         if(any(names(data_dpp) == "Habitat")) {
-          ggplot(data = data_dpp, aes(x = Time, y = eaten, color = Habitat))  + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Habitat Type", type = "div",palette = 5) + xlab("Year") + ylab("Proportion of Diet") + ggtitle(paste("Diet of ", data_dpp[[1]][4], " by Habitat Type", sep = "")) + facet_wrap(~ Predator) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + scale_x_continuous(breaks=round(as.numeric(quantile(data_dpp$Time, probs = seq(0, 1, .2))))) 
+          ggplot(data = data_dpp, aes(x = Time, y = eaten, color = Habitat))  + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Habitat Type", type = "div",palette = 5) + xlab("Year") + ylab("Proportion of Diet") + ggtitle(paste(data_dpp[[1]][4], " in Diet of Others by Habitat Type", sep = "")) + facet_wrap(~ Predator) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + scale_x_continuous(breaks=round(as.numeric(quantile(data_dpp$Time, probs = seq(0, 1, .2))))) 
         } else {
-          ggplot(data = data_dpp, aes(x = Time, y = eaten, color = as.character(Cohort)))  + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10) + xlab("Year") + ylab("Proportion of Diet") + ggtitle(paste("Diet of ", data_dpp[[1]][5], " by Age Class", sep = "")) + facet_wrap(~ Predator) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + scale_x_continuous(breaks=round(as.numeric(quantile(data_dpp$Time, probs = seq(0, 1, .2))))) 
+          ggplot(data = data_dpp, aes(x = Time, y = eaten, color = as.character(Cohort)))  + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Ageclass", type = "div",palette = 5, labels = 1:10) + xlab("Year") + ylab("Proportion of Diet") + ggtitle(paste(data_dpp[[1]][5], " in Diet of Others by Age Class", sep = "")) + facet_wrap(~ Predator) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) + scale_x_continuous(breaks=round(as.numeric(quantile(data_dpp$Time, probs = seq(0, 1, .2))))) 
         }
       })
       
@@ -852,12 +852,12 @@ vadt <- function(obj, anim = NULL){
       # ----------------------------------------- 
       output$fish_all <- renderPlot({
         if(input$scale == "Free"){
-        ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, scales = "free", ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)") } else {
-          ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)")
+        ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, scales = "free", ncol = 5) + theme_bw() + xlab("Time") + ylab("Landings (tons)") } else {
+          ggplot(aes(y = Biomass, x = Time), data = obj$fish_biomass_year_l) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Landings (tons)")
         }})
       
       output$fish_marginal_map <- renderPlot({
-        qplot(y = obj$fish_biomass_year[[match(input$fish_marginal, names(obj$fish_biomass_year))]], x = Time, data = obj$fish_biomass_year, geom = "line") + theme_bw() +  ylab("Catch (tons)") + xlab("Year")
+        qplot(y = obj$fish_biomass_year[[match(input$fish_marginal, names(obj$fish_biomass_year))]], x = Time, data = obj$fish_biomass_year, geom = "line") + theme_bw() +  ylab("Landings (tons)") + xlab("Year")
       })
       
       # Catch by ageclass
@@ -865,13 +865,13 @@ vadt <- function(obj, anim = NULL){
       output$fish_by_age_n <- renderPlot({
         tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$fish_age,]
         tmp$Age <- as.character(tmp$Age)
-        ggplot(data = tmp, aes(y = Catch_numb, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Catch (numbers)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+        ggplot(data = tmp, aes(y = Land_numb, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Landings (numbers)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
       })
       
       output$fish_by_age_w <- renderPlot({
         tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$fish_age,]
         tmp$Age <- as.character(tmp$Age)
-        ggplot(data = tmp, aes(y = Catch_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Catch (tonnes)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+        ggplot(data = tmp, aes(y = Land_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Landings (tons)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
       })
       
       
@@ -881,20 +881,20 @@ vadt <- function(obj, anim = NULL){
       
       output$fish_fishery_map <- renderPlot({
         tmp <- subset(obj$fish_fishery_l, Fishery == input$fish_fishery)
-        ggplot(aes(y = biomass, x = Time), data = tmp) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Biomass (tons)")
+        ggplot(aes(y = biomass, x = Time), data = tmp) + geom_line() + facet_wrap(~Group, ncol = 5) + theme_bw() + xlab("Time") + ylab("Landings (tons)")
       })
       
       output$Catch_box <- renderPlot({
         tmp <- obj$totcatch[obj$totcatch$".id" == input$FishedGroups,]
         nrbox <- length(unique(tmp$Box))
         tmp <- within(tmp, Box <- factor(Box, levels = paste("Box", 0:(nrbox-1))))   ## Order the graphs by box number
-        ggplot(data = tmp, aes(y = Catch, x = Time)) + facet_wrap(~Box, ncol = 5) + theme_bw() + geom_line(size = 1) + ylab("") + xlab("Year")
+        ggplot(data = tmp, aes(y = Catch, x = Time)) + facet_wrap(~Box, ncol = 5) + theme_bw() + geom_line(size = 1) + ylab("Landings (tons)") + xlab("Year")
         
       })
       
       
       output$effort <- renderPlot({
-        ggplot(y = Effort, x = Time, data = obj$effort_l, geom = "line") + facet_wrap(~ Fishery, ncol = 5, scales = 'free') +  ylab("Effort (days)") + xlab("Year")
+        ggplot(y = Effort, x = Time, data = obj$effort_l, geom = "line") + facet_wrap(~ Fishery, ncol = 5, scales = 'free') + theme_bw() +  ylab("Effort (days)") + xlab("Year")
       })
       
       # Discards plots
@@ -904,7 +904,7 @@ vadt <- function(obj, anim = NULL){
         tmp <- tmp %>%
           group_by(Time) %>%
           summarise(Total_Discard = sum(Discard_weight))
-        ggplot(data = tmp, aes(y = Total_Discard, x = Time))+ geom_line() + theme_bw() +  ylab("Total discarded (tonnes)") + xlab("Time")
+        ggplot(data = tmp, aes(y = Total_Discard, x = Time))+ geom_line() + theme_bw() +  ylab("Total discarded (tons)") + xlab("Time")
       })
       
       output$prop_disc_w <- renderPlot({
@@ -1014,23 +1014,23 @@ vadt <- function(obj, anim = NULL){
       output$discard_weight_age <- renderPlot({
         tmp <- obj$dis_df[obj$dis_df$Functional_Group == input$disc_Group,]
         tmp$Age <- as.character(tmp$Age)
-        ggplot(data = tmp, aes(y = Discard_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Total discarded (tonnes)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
+        ggplot(data = tmp, aes(y = Discard_weight, x = Time, group = Age, color = Age)) + geom_line(size = 2, alpha = .75)  + scale_color_brewer(name = "Ageclass",type = "div", palette = 5, labels = 1:10) + ylab("Total discarded (tons)")  + theme_bw() + scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))  + guides(fill = guide_legend(override.aes = list(colour = NULL))) + theme(panel.background=element_blank(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(), axis.line = element_line(size = .2)) + xlab("Year")
       })
       
       
       output$discard_group <- renderPlot({
-        ggplot(data = obj$discard_total_l, aes(y = Discards, x = Time)) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + geom_line(size = 1, alpha = .75) + xlab("Year") + ylab("Discard (tonnes)")
+        ggplot(data = obj$discard_total_l, aes(y = Discards, x = Time)) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + geom_line(size = 1, alpha = .75) + xlab("Year") + ylab("Discard (tons)")
       })
       
       output$discard_fishery <- renderPlot({
         tmp <- obj$discard_fishery_l[obj$discard_fishery_l$Fishery == input$disc_fishery,]
-        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tonnes)") +
+        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Group, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tons)") +
           scale_x_continuous(breaks=round(as.numeric(quantile(tmp$Time, probs = seq(0, 1, .2)))))
       })
       
       output$discard_fishery_group <- renderPlot({
         tmp <- obj$discard_fishery_l[obj$discard_fishery_l$Group == input$disc_group,]
-        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Fishery, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tonnes)")
+        qplot(y = Discards, x = Time, geom = "line", data = tmp) + facet_wrap(~ Fishery, scales = "fixed", ncol = 5) + theme_bw() + xlab("Year") + ylab("Discard (tons)")
       })
       
 
