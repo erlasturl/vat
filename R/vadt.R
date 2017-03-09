@@ -719,7 +719,7 @@ vadt <- function(obj, anim = NULL){
       # -----------------------------------------
       # Diet Predator by prey
       output$diet_pprey <- renderPlot({
-        data_dpp <- obj$diet_l[Predator == input$diet_dispred & Prey == input$diet_disprey, ]
+        data_dpp <- subset(obj$diet_l, Predator == input$diet_dispred & Prey == input$diet_disprey)
         if(any(names(data_dpp) == "Habitat")) {
           ggplot(data = data_dpp, aes(x = Time, y = eaten, color = Habitat)) + geom_line(size = 1, alpha = .75) + scale_color_brewer(name = "Habitat Type", type = "div",palette = 5) + xlab("Year") + ylab("Proportion of Diet") +  
             scale_x_continuous(breaks=round(as.numeric(quantile(data_dpp$Time, probs = seq(0, 1, .2))))) + ggtitle(paste("Diet of ", data_dpp[[1]][4], " by ", data_dpp[[1]][1], " by Habitat Type", sep = "")) + theme_bw() + guides(fill = guide_legend(override.aes = list(colour = NULL)))+ theme(panel.background=element_blank(), legend.key = element_rect(), legend.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),axis.line = element_line(size = .2)) 
