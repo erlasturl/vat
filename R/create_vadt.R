@@ -35,7 +35,13 @@
 #' toutfinc = 365
 #' obj <- create_vadt(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing, fishfile, toutfinc)
 #' }
-
+setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
+outdir = "OutM53BioV190FMV88_365/"; funfile = "GroupsIcelandFMA.csv"
+fishfile = 'FisheriesIceland.csv'
+ncout = "Out"; startyear = 1948; toutinc = 365
+biolprm = "BioV183.prm"
+fishing <- TRUE
+toutfinc = 365
 
 create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing = FALSE, fishfile = NULL, toutfinc = 365){
   # contants
@@ -283,9 +289,9 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   for(i in 1:length(species_ids)){
     spp <- fun_group[fun_group$Code == species_ids[i],c("Name", "NumCohorts")]
     spp <- str_trim(spp)
-    if(juvenile_age[i] != 1){
-      juv <- paste(spp[[1]], 1:(juvenile_age[i]+1), "_Nums", sep = "")   ### ERROR
-      ad <- paste(spp[[1]], (juvenile_age[i]+2):spp[[2]], "_Nums", sep = "") ### ERROR
+    if(juvenile_age[i] > 0){
+      juv <- paste(spp[[1]], 1:(juvenile_age[i]), "_Nums", sep = "")   ### ERROR
+      ad <- paste(spp[[1]], (juvenile_age[i]+1):spp[[2]], "_Nums", sep = "") ### ERROR
       # Create the juveniles data
       juv_tmp <- NULL
       for(j in juv){
