@@ -35,13 +35,7 @@
 #' toutfinc = 365
 #' obj <- create_vadt(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing, fishfile, toutfinc)
 #' }
-setwd('C:/Users/erlas/Dropbox/PostDoc/Atlantis/GoFishMore')
-outdir = "OutM53BioV190FMV88_365/"; funfile = "GroupsIcelandFMA.csv"
-fishfile = 'FisheriesIceland.csv'
-ncout = "Out"; startyear = 1948; toutinc = 365
-biolprm = "BioV183.prm"
-fishing <- TRUE
-toutfinc = 365
+
 
 create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fishing = FALSE, fishfile = NULL, toutfinc = 365){
   # contants
@@ -754,9 +748,9 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
     }
     
     
-    max_time <- length(fish_out$dim$t$vals)
+    max_time_f <- length(fish_out$dim$t$vals)
     dis_df <- ldply(dis_num_list, data.frame)
-    dis_df$Time <- rep(0:(max_time - 1),nrow(dis_df)/max_time)
+    dis_df$Time <- rep(0:(max_time_f - 1),nrow(dis_df)/max_time_f)
     dis_df$Time <- dis_df$Time * toutfinc / 365 + startyear 
     names(dis_df) <- c('Group', 'Discard_numb', 'Time')
     dis_df$Catch_numb <- ldply(catch_num_list, data.frame)$"X..i.."
