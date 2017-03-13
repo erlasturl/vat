@@ -367,11 +367,11 @@ vadt <- function(obj, anim = NULL){
                                                  if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
                                                    plotOutput("Total_discard_w", height = "450px")),
                                           column(6, 
-                                                 if(is.null(obj$fish_fishery_l) == FALSE)
+                                                 if(is.null(obj$fish_fishery_l) == FALSE & is.null(obj$dis_df$Length) == FALSE)
                                                    plotOutput("prop_disc_w", height = "450px"))),
                                         fluidRow(
                                           column(6, 
-                                                 if(is.null(obj$fish_fishery_l) == FALSE  & is.null(obj$dis_df$Length) == FALSE)
+                                                 if(is.null(obj$fish_fishery_l) == FALSE)
                                                    plotOutput("Total_discard_numb", height = "450px")),
                                           column(6, 
                                                  if(is.null(obj$fish_fishery_l) == FALSE)
