@@ -72,9 +72,6 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   fun_group <- read.csv(funfile, header = T, stringsAsFactors = FALSE)
   fun_group <- subset(fun_group, fun_group$IsTurnedOn == 1)
   
-  ## Drop those functional groups that are not turned on
-  fun_group <- fun_group[fun_group$IsTurnedOn == 1,]# c(1,3:8)]
-  
   if(sum(names(fun_group) == "InvertType") > 0)
     names(fun_group)[names(fun_group) == "InvertType"] <- "GroupType"
   
@@ -453,12 +450,11 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   
 
   cat("### ------------ Setting up diet matrix plot                             ------------ ###\n")    
-  diet <- read.table(paste(outdir, ncout, "DietCheck.txt", sep = ""), header = TRUE, stringsAsFactors = TRUE)
-  #     if(any(names(diet) == "Predator")) {
-  #       colnames(diet) <- c("Time", "Code", "Habitat", fun_group[,4])
-  #     } else {
+       if(any(names(diet) == "Updated")) {
+         colnames(diet) <- c("Time", "Code", "Cohort", "Stock", "Updated", fun_group[,4])
+       } else {
   colnames(diet) <- c("Time", "Code", "Cohort", "Stock", fun_group[,4])
-  #    }
+      }
   diet <- merge(diet, fun_group[,c(1,2,4)])
   diet <- arrange(diet, Index)
   diet$Code <- diet$Name
@@ -468,7 +464,11 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
     diet_l <- diet %>%
       gather("Prey", "eaten", 4:ncol(diet))
     colnames(diet_l) <- c("Predator","Time","Habitat", "Prey", "eaten")
-  } else {
+  } else   if(any(names(diet) == "Updated")){
+    diet_l <- diet %>%
+      gather("Prey", "eaten", 6:ncol(diet))
+    colnames(diet_l) <- c("Predator","Time","Cohort", "Stock", "Updated", "Prey", "eaten")
+    } else {
     diet_l <- diet %>%
       gather("Prey", "eaten", 5:ncol(diet))
     colnames(diet_l) <- c("Predator","Time","Cohort", "Stock", "Prey", "eaten")
@@ -785,4 +785,5 @@ create_vadt <- function(outdir, funfile, biolprm, ncout, startyear, toutinc, fis
   cat("### ------------ vat object created, you can now run the vat application ------------ ###\n") 
   return(output)
   class(output) <- "vadt"
-}
+  }
+  
